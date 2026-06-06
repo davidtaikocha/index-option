@@ -1,0 +1,5 @@
+out/
+cache/
+broadcast/
+*.swp
+.DS_Store
