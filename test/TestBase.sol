@@ -2,11 +2,19 @@
 pragma solidity ^0.8.24;
 
 interface Vm {
+    struct Log {
+        bytes32[] topics;
+        bytes data;
+        address emitter;
+    }
+
     function warp(uint256 newTimestamp) external;
     function deal(address account, uint256 newBalance) external;
     function prank(address account) external;
     function expectRevert(bytes4 selector) external;
     function expectEmit(bool checkTopic1, bool checkTopic2, bool checkTopic3, bool checkData) external;
+    function recordLogs() external;
+    function getRecordedLogs() external returns (Log[] memory);
 }
 
 contract TestBase {
@@ -27,6 +35,10 @@ contract TestBase {
     }
 
     function assertEq(address actual, address expected, string memory message) internal pure {
+        if (actual != expected) revert(message);
+    }
+
+    function assertEq(bytes32 actual, bytes32 expected, string memory message) internal pure {
         if (actual != expected) revert(message);
     }
 
