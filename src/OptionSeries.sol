@@ -69,6 +69,7 @@ contract OptionSeries {
     function combine(uint256 amount, address receiver) external {
         if (settled) revert CombineAfterSettlement();
         if (amount == 0) revert ZeroAmount();
+        if (receiver == address(0)) revert InvalidRecipient();
 
         pToken.burn(msg.sender, amount);
         nToken.burn(msg.sender, amount);

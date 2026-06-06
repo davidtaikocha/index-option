@@ -12,6 +12,7 @@ contract OptionSeriesSplitCombineTest is TestBase {
     ClaimToken internal pToken;
     ClaimToken internal nToken;
     address internal alice = address(0xA11CE);
+    address internal bob = address(0xB0B);
     uint256 internal maturity;
 
     function setUp() public {
@@ -73,6 +74,12 @@ contract OptionSeriesSplitCombineTest is TestBase {
         assertEq(nToken.balanceOf(alice), 2 ether, "alice N unchanged");
         assertEq(pToken.totalSupply(), 2 ether, "P supply unchanged");
         assertEq(nToken.totalSupply(), 2 ether, "N supply unchanged");
+    }
+
+    function testCombineChecksZeroReceiverBeforePBalance() public {
+        vm.expectRevert(OptionSeries.InvalidRecipient.selector);
+        vm.prank(bob);
+        series.combine(1 ether, address(0));
     }
 
     function testSplitRejectsZeroAmount() public {
