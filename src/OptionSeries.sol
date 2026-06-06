@@ -27,6 +27,7 @@ contract OptionSeries {
     error InvalidOracleValue();
     error AlreadySettled();
     error RedeemBeforeSettlement();
+    error InvalidRecipient();
     error EthTransferFailed();
 
     event Split(address indexed user, address indexed receiver, uint256 amount);
@@ -78,6 +79,7 @@ contract OptionSeries {
 
     function _sendETH(address receiver, uint256 amount) internal {
         if (amount == 0) return;
+        if (receiver == address(0)) revert InvalidRecipient();
 
         (bool ok, ) = receiver.call{ value: amount }("");
         if (!ok) revert EthTransferFailed();

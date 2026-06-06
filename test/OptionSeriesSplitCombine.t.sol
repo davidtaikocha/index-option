@@ -60,6 +60,21 @@ contract OptionSeriesSplitCombineTest is TestBase {
         assertEq(nToken.totalSupply(), 1 ether, "remaining N supply");
     }
 
+    function testCombineRejectsZeroReceiverBeforeBurningClaims() public {
+        vm.prank(alice);
+        series.split{ value: 2 ether }(alice);
+
+        vm.expectRevert(OptionSeries.InvalidRecipient.selector);
+        vm.prank(alice);
+        series.combine(1 ether, address(0));
+
+        assertEq(address(series).balance, 2 ether, "series collateral unchanged");
+        assertEq(pToken.balanceOf(alice), 2 ether, "alice P unchanged");
+        assertEq(nToken.balanceOf(alice), 2 ether, "alice N unchanged");
+        assertEq(pToken.totalSupply(), 2 ether, "P supply unchanged");
+        assertEq(nToken.totalSupply(), 2 ether, "N supply unchanged");
+    }
+
     function testSplitRejectsZeroAmount() public {
         vm.expectRevert(OptionSeries.ZeroAmount.selector);
         vm.prank(alice);
