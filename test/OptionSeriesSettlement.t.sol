@@ -39,6 +39,20 @@ contract OptionSeriesSettlementTest is TestBase {
         series.settle();
     }
 
+    function testConstructorRejectsStrikeThatCanOverflowSettlementMath() public {
+        vm.expectRevert(OptionSeries.StrikeTooLarge.selector);
+        new OptionSeries(
+            "USD/ETH",
+            type(uint256).max / 1e18 + 1,
+            maturity,
+            address(oracle),
+            "P USD/ETH overflow",
+            "pUSDOverflow",
+            "N USD/ETH overflow",
+            "nUSDOverflow"
+        );
+    }
+
     function testSettleRejectsUnresolvedOracle() public {
         vm.warp(maturity);
 
@@ -193,6 +207,25 @@ contract OptionSeriesSettlementTest is TestBase {
         assertEq(pToken.totalSupply(), 0, "P supply after dust test");
         assertEq(nToken.totalSupply(), 0, "N supply after dust test");
         assertLe(address(series).balance, 1, "dust is bounded by one wei");
+    }
+
+    function testFragmentedRedemptionDustIsGloballyBounded() public {
+        _split(3);
+        vm.warp(maturity);
+        oracle.setResolvedValue(address(series), 4000e18);
+        series.settle();
+
+        for (uint256 i; i < 3; i++) {
+            vm.prank(alice);
+            series.redeemP(1, alice);
+
+            vm.prank(alice);
+            series.redeemN(1, alice);
+        }
+
+        assertEq(pToken.totalSupply(), 0, "P supply after fragmented redemption");
+        assertEq(nToken.totalSupply(), 0, "N supply after fragmented redemption");
+        assertLe(address(series).balance, 1, "fragmented dust is globally bounded");
     }
 
     function _split(uint256 amount) internal {

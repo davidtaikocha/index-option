@@ -6,6 +6,7 @@ import { IPriceOracle } from "./interfaces/IPriceOracle.sol";
 
 contract OptionSeries {
     uint256 public constant ONE = 1e18;
+    uint256 public constant MAX_AMOUNT = type(uint256).max / ONE - 1;
 
     string public ticker;
     uint256 public immutable strike;
@@ -17,11 +18,15 @@ contract OptionSeries {
     uint256 public resolvedValue;
     uint256 public payoutP;
     uint256 public payoutN;
+    uint256 public pRemainder;
+    uint256 public nRemainder;
 
     error ZeroStrike();
+    error StrikeTooLarge();
     error ZeroMaturity();
     error ZeroOracle();
     error ZeroAmount();
+    error AmountTooLarge();
     error SplitAfterMaturity();
     error CombineAfterSettlement();
     error SettleBeforeMaturity();
@@ -54,6 +59,7 @@ contract OptionSeries {
         string memory nSymbol_
     ) {
         if (strike_ == 0) revert ZeroStrike();
+        if (strike_ > type(uint256).max / ONE) revert StrikeTooLarge();
         if (maturity_ == 0) revert ZeroMaturity();
         if (oracle_ == address(0)) revert ZeroOracle();
 
@@ -67,6 +73,7 @@ contract OptionSeries {
 
     function split(address receiver) external payable returns (uint256 amount) {
         if (msg.value == 0) revert ZeroAmount();
+        if (msg.value > MAX_AMOUNT) revert AmountTooLarge();
         if (block.timestamp >= maturity) revert SplitAfterMaturity();
 
         amount = msg.value;
@@ -108,28 +115,38 @@ contract OptionSeries {
     }
 
     function redeemP(uint256 amount, address receiver) external returns (uint256 ethPaid) {
-        ethPaid = _redeem(pToken, payoutP, amount, receiver);
+        ethPaid = _redeem(pToken, payoutP, amount, receiver, true);
     }
 
     function redeemN(uint256 amount, address receiver) external returns (uint256 ethPaid) {
-        ethPaid = _redeem(nToken, payoutN, amount, receiver);
+        ethPaid = _redeem(nToken, payoutN, amount, receiver, false);
     }
 
     function _redeem(
         ClaimToken token,
         uint256 payout,
         uint256 amount,
-        address receiver
+        address receiver,
+        bool isPToken
     )
         internal
         returns (uint256 ethPaid)
     {
         if (!settled) revert RedeemBeforeSettlement();
         if (amount == 0) revert ZeroAmount();
+        if (amount > MAX_AMOUNT) revert AmountTooLarge();
         if (receiver == address(0)) revert InvalidRecipient();
 
+        uint256 numerator = amount * payout + (isPToken ? pRemainder : nRemainder);
+        uint256 newRemainder = numerator % ONE;
+        ethPaid = numerator / ONE;
+
         token.burn(msg.sender, amount);
-        ethPaid = (amount * payout) / ONE;
+        if (isPToken) {
+            pRemainder = newRemainder;
+        } else {
+            nRemainder = newRemainder;
+        }
         _sendETH(receiver, ethPaid);
 
         emit Redeemed(msg.sender, receiver, address(token), amount, ethPaid);
