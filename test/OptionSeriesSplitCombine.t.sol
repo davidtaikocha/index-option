@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import { ClaimToken } from "../src/ClaimToken.sol";
-import { OptionSeries } from "../src/OptionSeries.sol";
-import { MockPriceOracle } from "./mocks/MockPriceOracle.sol";
-import { TestBase } from "./TestBase.sol";
+import {ClaimToken} from "../src/ClaimToken.sol";
+import {OptionSeries} from "../src/OptionSeries.sol";
+import {MockPriceOracle} from "./mocks/MockPriceOracle.sol";
+import {TestBase} from "./TestBase.sol";
 
 contract OptionSeriesSplitCombineTest is TestBase {
     MockPriceOracle internal oracle;
@@ -19,14 +19,7 @@ contract OptionSeriesSplitCombineTest is TestBase {
         oracle = new MockPriceOracle();
         maturity = block.timestamp + 7 days;
         series = new OptionSeries(
-            "USD/ETH",
-            2000e18,
-            maturity,
-            address(oracle),
-            "P USD/ETH 2000",
-            "pUSD2000",
-            "N USD/ETH 2000",
-            "nUSD2000"
+            "USD/ETH", 2000e18, maturity, address(oracle), "P USD/ETH 2000", "pUSD2000", "N USD/ETH 2000", "nUSD2000"
         );
         pToken = series.pToken();
         nToken = series.nToken();
@@ -35,7 +28,7 @@ contract OptionSeriesSplitCombineTest is TestBase {
 
     function testSplitMintsEqualClaimsAndStoresCollateral() public {
         vm.prank(alice);
-        series.split{ value: 2 ether }(alice);
+        series.split{value: 2 ether}(alice);
 
         assertEq(address(series).balance, 2 ether, "series collateral");
         assertEq(pToken.balanceOf(alice), 2 ether, "alice P balance");
@@ -46,7 +39,7 @@ contract OptionSeriesSplitCombineTest is TestBase {
 
     function testCombineBurnsClaimsAndReturnsEthBeforeMaturity() public {
         vm.prank(alice);
-        series.split{ value: 2 ether }(alice);
+        series.split{value: 2 ether}(alice);
 
         uint256 balanceBeforeCombine = alice.balance;
 
@@ -63,7 +56,7 @@ contract OptionSeriesSplitCombineTest is TestBase {
 
     function testCombineRejectsZeroReceiverBeforeBurningClaims() public {
         vm.prank(alice);
-        series.split{ value: 2 ether }(alice);
+        series.split{value: 2 ether}(alice);
 
         vm.expectRevert(OptionSeries.InvalidRecipient.selector);
         vm.prank(alice);
@@ -85,7 +78,7 @@ contract OptionSeriesSplitCombineTest is TestBase {
     function testSplitRejectsZeroAmount() public {
         vm.expectRevert(OptionSeries.ZeroAmount.selector);
         vm.prank(alice);
-        series.split{ value: 0 }(alice);
+        series.split{value: 0}(alice);
     }
 
     function testSplitRejectedAtMaturity() public {
@@ -93,12 +86,12 @@ contract OptionSeriesSplitCombineTest is TestBase {
 
         vm.expectRevert(OptionSeries.SplitAfterMaturity.selector);
         vm.prank(alice);
-        series.split{ value: 1 ether }(alice);
+        series.split{value: 1 ether}(alice);
     }
 
     function testCombineAllowedAfterMaturityBeforeSettlement() public {
         vm.prank(alice);
-        series.split{ value: 1 ether }(alice);
+        series.split{value: 1 ether}(alice);
 
         vm.warp(maturity);
         uint256 balanceBeforeCombine = alice.balance;

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import { ClaimToken } from "../src/ClaimToken.sol";
-import { TestBase } from "./TestBase.sol";
+import {ClaimToken} from "../src/ClaimToken.sol";
+import {TestBase} from "./TestBase.sol";
 
 contract ClaimTokenTest is TestBase {
     ClaimToken internal token;

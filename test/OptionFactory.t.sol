@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import { OptionFactory } from "../src/OptionFactory.sol";
-import { OptionSeries } from "../src/OptionSeries.sol";
-import { MockPriceOracle } from "./mocks/MockPriceOracle.sol";
-import { TestBase, Vm } from "./TestBase.sol";
+import {OptionFactory} from "../src/OptionFactory.sol";
+import {OptionSeries} from "../src/OptionSeries.sol";
+import {MockPriceOracle} from "./mocks/MockPriceOracle.sol";
+import {TestBase, Vm} from "./TestBase.sol";
 
 contract OptionFactoryTest is TestBase {
     event OptionSeriesCreated(
@@ -30,14 +30,7 @@ contract OptionFactoryTest is TestBase {
     function testCreateSeriesDeploysConfiguredMarket() public {
         vm.recordLogs();
         address seriesAddress = factory.createSeries(
-            "USD/ETH",
-            2000e18,
-            maturity,
-            address(oracle),
-            "P USD/ETH 2000",
-            "pUSD2000",
-            "N USD/ETH 2000",
-            "nUSD2000"
+            "USD/ETH", 2000e18, maturity, address(oracle), "P USD/ETH 2000", "pUSD2000", "N USD/ETH 2000", "nUSD2000"
         );
 
         OptionSeries series = OptionSeries(seriesAddress);
@@ -80,41 +73,20 @@ contract OptionFactoryTest is TestBase {
     function testCreateSeriesRejectsZeroStrike() public {
         vm.expectRevert(OptionSeries.ZeroStrike.selector);
         factory.createSeries(
-            "USD/ETH",
-            0,
-            maturity,
-            address(oracle),
-            "P USD/ETH 2000",
-            "pUSD2000",
-            "N USD/ETH 2000",
-            "nUSD2000"
+            "USD/ETH", 0, maturity, address(oracle), "P USD/ETH 2000", "pUSD2000", "N USD/ETH 2000", "nUSD2000"
         );
     }
 
     function testCreateSeriesRejectsZeroMaturity() public {
         vm.expectRevert(OptionSeries.ZeroMaturity.selector);
         factory.createSeries(
-            "USD/ETH",
-            2000e18,
-            0,
-            address(oracle),
-            "P USD/ETH 2000",
-            "pUSD2000",
-            "N USD/ETH 2000",
-            "nUSD2000"
+            "USD/ETH", 2000e18, 0, address(oracle), "P USD/ETH 2000", "pUSD2000", "N USD/ETH 2000", "nUSD2000"
         );
     }
 
     function testCreateSeriesRejectsStrikeTooLarge() public {
         OptionSeries referenceSeries = new OptionSeries(
-            "USD/ETH",
-            2000e18,
-            maturity,
-            address(oracle),
-            "P USD/ETH 2000",
-            "pUSD2000",
-            "N USD/ETH 2000",
-            "nUSD2000"
+            "USD/ETH", 2000e18, maturity, address(oracle), "P USD/ETH 2000", "pUSD2000", "N USD/ETH 2000", "nUSD2000"
         );
         uint256 strikeTooLarge = type(uint256).max / referenceSeries.ONE() + 1;
 
@@ -134,14 +106,7 @@ contract OptionFactoryTest is TestBase {
     function testCreateSeriesRejectsZeroOracle() public {
         vm.expectRevert(OptionSeries.ZeroOracle.selector);
         factory.createSeries(
-            "USD/ETH",
-            2000e18,
-            maturity,
-            address(0),
-            "P USD/ETH 2000",
-            "pUSD2000",
-            "N USD/ETH 2000",
-            "nUSD2000"
+            "USD/ETH", 2000e18, maturity, address(0), "P USD/ETH 2000", "pUSD2000", "N USD/ETH 2000", "nUSD2000"
         );
     }
 }

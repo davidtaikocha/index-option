@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import { ClaimToken } from "./ClaimToken.sol";
-import { IPriceOracle } from "./interfaces/IPriceOracle.sol";
+import {ClaimToken} from "./ClaimToken.sol";
+import {IPriceOracle} from "./interfaces/IPriceOracle.sol";
 
 contract OptionSeries {
     uint256 public constant ONE = 1e18;
@@ -41,11 +41,7 @@ contract OptionSeries {
     event Combined(address indexed user, address indexed receiver, uint256 amount);
     event Settled(uint256 resolvedValue, uint256 payoutP, uint256 payoutN);
     event Redeemed(
-        address indexed user,
-        address indexed receiver,
-        address indexed token,
-        uint256 amount,
-        uint256 ethPaid
+        address indexed user, address indexed receiver, address indexed token, uint256 amount, uint256 ethPaid
     );
 
     constructor(
@@ -122,13 +118,7 @@ contract OptionSeries {
         ethPaid = _redeem(nToken, payoutN, amount, receiver, false);
     }
 
-    function _redeem(
-        ClaimToken token,
-        uint256 payout,
-        uint256 amount,
-        address receiver,
-        bool isPToken
-    )
+    function _redeem(ClaimToken token, uint256 payout, uint256 amount, address receiver, bool isPToken)
         internal
         returns (uint256 ethPaid)
     {
@@ -156,7 +146,7 @@ contract OptionSeries {
         if (receiver == address(0)) revert InvalidRecipient();
         if (amount == 0) return;
 
-        (bool ok, ) = receiver.call{ value: amount }("");
+        (bool ok,) = receiver.call{value: amount}("");
         if (!ok) revert EthTransferFailed();
     }
 }

@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import { ClaimToken } from "../src/ClaimToken.sol";
-import { OptionSeries } from "../src/OptionSeries.sol";
-import { MockPriceOracle } from "./mocks/MockPriceOracle.sol";
-import { TestBase } from "./TestBase.sol";
+import {ClaimToken} from "../src/ClaimToken.sol";
+import {OptionSeries} from "../src/OptionSeries.sol";
+import {MockPriceOracle} from "./mocks/MockPriceOracle.sol";
+import {TestBase} from "./TestBase.sol";
 
 contract OptionSeriesSettlementTest is TestBase {
     MockPriceOracle internal oracle;
@@ -18,14 +18,7 @@ contract OptionSeriesSettlementTest is TestBase {
         oracle = new MockPriceOracle();
         maturity = block.timestamp + 7 days;
         series = new OptionSeries(
-            "USD/ETH",
-            2000e18,
-            maturity,
-            address(oracle),
-            "P USD/ETH 2000",
-            "pUSD2000",
-            "N USD/ETH 2000",
-            "nUSD2000"
+            "USD/ETH", 2000e18, maturity, address(oracle), "P USD/ETH 2000", "pUSD2000", "N USD/ETH 2000", "nUSD2000"
         );
         pToken = series.pToken();
         nToken = series.nToken();
@@ -230,6 +223,6 @@ contract OptionSeriesSettlementTest is TestBase {
 
     function _split(uint256 amount) internal {
         vm.prank(alice);
-        series.split{ value: amount }(alice);
+        series.split{value: amount}(alice);
     }
 }

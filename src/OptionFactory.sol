@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import { OptionSeries } from "./OptionSeries.sol";
+import {OptionSeries} from "./OptionSeries.sol";
 
 contract OptionFactory {
     event OptionSeriesCreated(
@@ -23,21 +23,12 @@ contract OptionFactory {
         string memory pSymbol,
         string memory nName,
         string memory nSymbol
-    )
-        external
-        returns (address seriesAddress)
-    {
+    ) external returns (address seriesAddress) {
         OptionSeries series = new OptionSeries(ticker, strike, maturity, oracle, pName, pSymbol, nName, nSymbol);
         seriesAddress = address(series);
 
         emit OptionSeriesCreated(
-            seriesAddress,
-            ticker,
-            strike,
-            maturity,
-            oracle,
-            address(series.pToken()),
-            address(series.nToken())
+            seriesAddress, ticker, strike, maturity, oracle, address(series.pToken()), address(series.nToken())
         );
     }
 }
