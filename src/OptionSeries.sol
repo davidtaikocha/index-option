@@ -126,6 +126,7 @@ contract OptionSeries {
     {
         if (!settled) revert RedeemBeforeSettlement();
         if (amount == 0) revert ZeroAmount();
+        if (receiver == address(0)) revert InvalidRecipient();
 
         token.burn(msg.sender, amount);
         ethPaid = (amount * payout) / ONE;
@@ -135,8 +136,8 @@ contract OptionSeries {
     }
 
     function _sendETH(address receiver, uint256 amount) internal {
-        if (amount == 0) return;
         if (receiver == address(0)) revert InvalidRecipient();
+        if (amount == 0) return;
 
         (bool ok, ) = receiver.call{ value: amount }("");
         if (!ok) revert EthTransferFailed();

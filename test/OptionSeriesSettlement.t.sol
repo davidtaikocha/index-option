@@ -126,6 +126,47 @@ contract OptionSeriesSettlementTest is TestBase {
         series.redeemP(1 ether, alice);
     }
 
+    function testRedeemRejectsZeroAmountAfterSettlement() public {
+        _split(1 ether);
+        vm.warp(maturity);
+        oracle.setResolvedValue(address(series), 2500e18);
+        series.settle();
+
+        vm.expectRevert(OptionSeries.ZeroAmount.selector);
+        vm.prank(alice);
+        series.redeemP(0, alice);
+    }
+
+    function testRedeemPRejectsZeroReceiverBeforeBurningNonzeroPayoutLeg() public {
+        _split(1 ether);
+        vm.warp(maturity);
+        oracle.setResolvedValue(address(series), 2500e18);
+        series.settle();
+
+        vm.expectRevert(OptionSeries.InvalidRecipient.selector);
+        vm.prank(alice);
+        series.redeemP(1 ether, address(0));
+
+        assertEq(address(series).balance, 1 ether, "series collateral unchanged");
+        assertEq(pToken.balanceOf(alice), 1 ether, "alice P unchanged");
+        assertEq(pToken.totalSupply(), 1 ether, "P supply unchanged");
+    }
+
+    function testRedeemNRejectsZeroReceiverBeforeBurningZeroPayoutLeg() public {
+        _split(1 ether);
+        vm.warp(maturity);
+        oracle.setResolvedValue(address(series), 2000e18);
+        series.settle();
+
+        vm.expectRevert(OptionSeries.InvalidRecipient.selector);
+        vm.prank(alice);
+        series.redeemN(1 ether, address(0));
+
+        assertEq(address(series).balance, 1 ether, "series collateral unchanged");
+        assertEq(nToken.balanceOf(alice), 1 ether, "alice N unchanged");
+        assertEq(nToken.totalSupply(), 1 ether, "N supply unchanged");
+    }
+
     function testCombineRejectedAfterSettlement() public {
         _split(1 ether);
         vm.warp(maturity);
