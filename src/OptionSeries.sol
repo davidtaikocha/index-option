@@ -14,19 +14,11 @@ contract OptionSeries {
     ClaimToken public immutable pToken;
     ClaimToken public immutable nToken;
 
-    bool public settled;
-
     error ZeroStrike();
     error ZeroMaturity();
     error ZeroOracle();
     error ZeroAmount();
     error SplitAfterMaturity();
-    error CombineAfterSettlement();
-    error SettleBeforeMaturity();
-    error OracleUnresolved();
-    error InvalidOracleValue();
-    error AlreadySettled();
-    error RedeemBeforeSettlement();
     error InvalidRecipient();
     error EthTransferFailed();
 
@@ -67,7 +59,6 @@ contract OptionSeries {
     }
 
     function combine(uint256 amount, address receiver) external {
-        if (settled) revert CombineAfterSettlement();
         if (amount == 0) revert ZeroAmount();
         if (receiver == address(0)) revert InvalidRecipient();
 
