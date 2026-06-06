@@ -1,0 +1,161 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import { ClaimToken } from "../src/ClaimToken.sol";
+import { OptionSeries } from "../src/OptionSeries.sol";
+import { MockPriceOracle } from "./mocks/MockPriceOracle.sol";
+import { TestBase } from "./TestBase.sol";
+
+contract OptionSeriesSettlementTest is TestBase {
+    MockPriceOracle internal oracle;
+    OptionSeries internal series;
+    ClaimToken internal pToken;
+    ClaimToken internal nToken;
+    address internal alice = address(0xA11CE);
+    uint256 internal maturity;
+
+    function setUp() public {
+        oracle = new MockPriceOracle();
+        maturity = block.timestamp + 7 days;
+        series = new OptionSeries(
+            "USD/ETH",
+            2000e18,
+            maturity,
+            address(oracle),
+            "P USD/ETH 2000",
+            "pUSD2000",
+            "N USD/ETH 2000",
+            "nUSD2000"
+        );
+        pToken = series.pToken();
+        nToken = series.nToken();
+        vm.deal(alice, 20 ether);
+    }
+
+    function testSettleRejectsBeforeMaturity() public {
+        oracle.setResolvedValue(address(series), 2500e18);
+
+        vm.expectRevert(OptionSeries.SettleBeforeMaturity.selector);
+        series.settle();
+    }
+
+    function testSettleRejectsUnresolvedOracle() public {
+        vm.warp(maturity);
+
+        vm.expectRevert(OptionSeries.OracleUnresolved.selector);
+        series.settle();
+    }
+
+    function testSettleRejectsZeroOracleValue() public {
+        vm.warp(maturity);
+        oracle.setResolvedValue(address(series), 0);
+
+        vm.expectRevert(OptionSeries.InvalidOracleValue.selector);
+        series.settle();
+    }
+
+    function testDuplicateSettlementRejected() public {
+        _split(1 ether);
+        vm.warp(maturity);
+        oracle.setResolvedValue(address(series), 2500e18);
+        series.settle();
+
+        vm.expectRevert(OptionSeries.AlreadySettled.selector);
+        series.settle();
+    }
+
+    function testSettlementBelowStrikeGivesAllCollateralToP() public {
+        vm.warp(maturity);
+        oracle.setResolvedValue(address(series), 1500e18);
+
+        series.settle();
+
+        assertTrue(series.settled(), "settled");
+        assertEq(series.resolvedValue(), 1500e18, "resolved value");
+        assertEq(series.payoutP(), 1e18, "P payout");
+        assertEq(series.payoutN(), 0, "N payout");
+    }
+
+    function testSettlementAtStrikeGivesAllCollateralToP() public {
+        vm.warp(maturity);
+        oracle.setResolvedValue(address(series), 2000e18);
+
+        series.settle();
+
+        assertEq(series.payoutP(), 1e18, "P payout at strike");
+        assertEq(series.payoutN(), 0, "N payout at strike");
+    }
+
+    function testSettlementAboveStrikeSplitsByStrikeOverResolvedValue() public {
+        vm.warp(maturity);
+        oracle.setResolvedValue(address(series), 2500e18);
+
+        series.settle();
+
+        assertEq(series.payoutP(), 800000000000000000, "P payout above strike");
+        assertEq(series.payoutN(), 200000000000000000, "N payout above strike");
+    }
+
+    function testRedeemPAndNAfterSettlement() public {
+        _split(10 ether);
+        vm.warp(maturity);
+        oracle.setResolvedValue(address(series), 2500e18);
+        series.settle();
+
+        uint256 balanceBeforeRedeem = alice.balance;
+
+        vm.prank(alice);
+        uint256 pPaid = series.redeemP(10 ether, alice);
+
+        vm.prank(alice);
+        uint256 nPaid = series.redeemN(10 ether, alice);
+
+        assertEq(pPaid, 8 ether, "P paid");
+        assertEq(nPaid, 2 ether, "N paid");
+        assertEq(alice.balance, balanceBeforeRedeem + 10 ether, "alice receives all collateral");
+        assertEq(address(series).balance, 0, "series drained");
+        assertEq(pToken.totalSupply(), 0, "P supply after redemption");
+        assertEq(nToken.totalSupply(), 0, "N supply after redemption");
+    }
+
+    function testRedeemRejectedBeforeSettlement() public {
+        _split(1 ether);
+
+        vm.expectRevert(OptionSeries.RedeemBeforeSettlement.selector);
+        vm.prank(alice);
+        series.redeemP(1 ether, alice);
+    }
+
+    function testCombineRejectedAfterSettlement() public {
+        _split(1 ether);
+        vm.warp(maturity);
+        oracle.setResolvedValue(address(series), 2500e18);
+        series.settle();
+
+        vm.expectRevert(OptionSeries.CombineAfterSettlement.selector);
+        vm.prank(alice);
+        series.combine(1 ether, alice);
+    }
+
+    function testRedemptionDustIsBounded() public {
+        _split(1);
+        vm.warp(maturity);
+        oracle.setResolvedValue(address(series), 3e18);
+        series.settle();
+
+        vm.prank(alice);
+        series.redeemP(1, alice);
+
+        vm.prank(alice);
+        series.redeemN(1, alice);
+
+        assertEq(pToken.totalSupply(), 0, "P supply after dust test");
+        assertEq(nToken.totalSupply(), 0, "N supply after dust test");
+        assertLe(address(series).balance, 1, "dust is bounded by one wei");
+    }
+
+    function _split(uint256 amount) internal {
+        vm.prank(alice);
+        series.split{ value: amount }(alice);
+    }
+}

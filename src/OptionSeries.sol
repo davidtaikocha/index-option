@@ -13,17 +13,35 @@ contract OptionSeries {
     IPriceOracle public immutable oracle;
     ClaimToken public immutable pToken;
     ClaimToken public immutable nToken;
+    bool public settled;
+    uint256 public resolvedValue;
+    uint256 public payoutP;
+    uint256 public payoutN;
 
     error ZeroStrike();
     error ZeroMaturity();
     error ZeroOracle();
     error ZeroAmount();
     error SplitAfterMaturity();
+    error CombineAfterSettlement();
+    error SettleBeforeMaturity();
+    error OracleUnresolved();
+    error InvalidOracleValue();
+    error AlreadySettled();
+    error RedeemBeforeSettlement();
     error InvalidRecipient();
     error EthTransferFailed();
 
     event Split(address indexed user, address indexed receiver, uint256 amount);
     event Combined(address indexed user, address indexed receiver, uint256 amount);
+    event Settled(uint256 resolvedValue, uint256 payoutP, uint256 payoutN);
+    event Redeemed(
+        address indexed user,
+        address indexed receiver,
+        address indexed token,
+        uint256 amount,
+        uint256 ethPaid
+    );
 
     constructor(
         string memory ticker_,
@@ -59,6 +77,7 @@ contract OptionSeries {
     }
 
     function combine(uint256 amount, address receiver) external {
+        if (settled) revert CombineAfterSettlement();
         if (amount == 0) revert ZeroAmount();
         if (receiver == address(0)) revert InvalidRecipient();
 
@@ -67,6 +86,52 @@ contract OptionSeries {
         _sendETH(receiver, amount);
 
         emit Combined(msg.sender, receiver, amount);
+    }
+
+    function settle() external {
+        if (settled) revert AlreadySettled();
+        if (block.timestamp < maturity) revert SettleBeforeMaturity();
+
+        (bool isResolved, uint256 value) = oracle.getResolvedValue(address(this));
+        if (!isResolved) revert OracleUnresolved();
+        if (value == 0) revert InvalidOracleValue();
+
+        uint256 pPayout = strike >= value ? ONE : (strike * ONE) / value;
+        uint256 nPayout = ONE - pPayout;
+
+        resolvedValue = value;
+        payoutP = pPayout;
+        payoutN = nPayout;
+        settled = true;
+
+        emit Settled(value, pPayout, nPayout);
+    }
+
+    function redeemP(uint256 amount, address receiver) external returns (uint256 ethPaid) {
+        ethPaid = _redeem(pToken, payoutP, amount, receiver);
+    }
+
+    function redeemN(uint256 amount, address receiver) external returns (uint256 ethPaid) {
+        ethPaid = _redeem(nToken, payoutN, amount, receiver);
+    }
+
+    function _redeem(
+        ClaimToken token,
+        uint256 payout,
+        uint256 amount,
+        address receiver
+    )
+        internal
+        returns (uint256 ethPaid)
+    {
+        if (!settled) revert RedeemBeforeSettlement();
+        if (amount == 0) revert ZeroAmount();
+
+        token.burn(msg.sender, amount);
+        ethPaid = (amount * payout) / ONE;
+        _sendETH(receiver, ethPaid);
+
+        emit Redeemed(msg.sender, receiver, address(token), amount, ethPaid);
     }
 
     function _sendETH(address receiver, uint256 amount) internal {
