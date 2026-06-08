@@ -129,7 +129,7 @@ contract OptionSeries is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         nToken = new ClaimToken("Complement ETH/USDC", "nETHUSDC");
     }
 
-    /// @notice Splits ETH into equal P and N claim tokens before maturity.
+    /// @notice Splits ETH into equal P and N claim tokens before settlement.
     /// @dev Each wei deposited mints one P token unit and one N token unit.
     /// @param receiver Account receiving both minted claim tokens.
     /// @return amount ETH amount deposited and claim amount minted per side.
