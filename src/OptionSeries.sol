@@ -5,10 +5,10 @@ import {ClaimToken} from "./ClaimToken.sol";
 import {IPriceOracle} from "./interfaces/IPriceOracle.sol";
 
 /// @title OptionSeries
-/// @notice ETH-backed P/N option series for one ticker, strike, and maturity.
+/// @notice ETH-collateralized ETH/USDC P/N option series for one strike and maturity.
 /// @dev Users split ETH into equal P and N claims. Before settlement, matching
 ///      P/N claims can always be recombined into ETH. After maturity, a slow
-///      oracle resolves the ticker value and P/N claims redeem against fixed
+///      oracle resolves the ETH/USDC price and P/N claims redeem against fixed
 ///      complementary payout ratios whose sum is exactly 1e18.
 contract OptionSeries {
     /// @notice Fixed-point scale used for strikes, resolved values, and payouts.
@@ -16,13 +16,11 @@ contract OptionSeries {
     /// @notice Upper bound that keeps `amount * payout + remainder` overflow-safe.
     uint256 public constant MAX_AMOUNT = type(uint256).max / ONE - 1;
 
-    /// @notice Human-readable ticker label for the resolved index.
-    string public ticker;
-    /// @notice 1e18 fixed-point strike value denominated in ETH terms.
+    /// @notice 1e18 fixed-point ETH/USDC strike price.
     uint256 public immutable strike;
     /// @notice Timestamp after which settlement can be performed.
     uint256 public immutable maturity;
-    /// @notice Oracle queried once at settlement.
+    /// @notice Oracle queried once at settlement for the ETH/USDC price.
     IPriceOracle public immutable oracle;
     /// @notice P-side claim token.
     ClaimToken public immutable pToken;
@@ -30,7 +28,7 @@ contract OptionSeries {
     ClaimToken public immutable nToken;
     /// @notice Whether the series has been settled.
     bool public settled;
-    /// @notice Oracle value used at settlement.
+    /// @notice ETH/USDC oracle price used at settlement.
     uint256 public resolvedValue;
     /// @notice ETH payout per P claim token, scaled by 1e18.
     uint256 public payoutP;
@@ -97,35 +95,20 @@ contract OptionSeries {
         address indexed user, address indexed receiver, address indexed token, uint256 amount, uint256 ethPaid
     );
 
-    /// @param ticker_ Human-readable ticker label for the resolved index.
-    /// @param strike_ 1e18 fixed-point strike value denominated in ETH terms.
+    /// @param strike_ 1e18 fixed-point ETH/USDC strike price.
     /// @param maturity_ Timestamp after which settlement is allowed.
     /// @param oracle_ Oracle contract implementing `IPriceOracle`.
-    /// @param pName_ ERC20-style name for the P claim token.
-    /// @param pSymbol_ ERC20-style symbol for the P claim token.
-    /// @param nName_ ERC20-style name for the N claim token.
-    /// @param nSymbol_ ERC20-style symbol for the N claim token.
-    constructor(
-        string memory ticker_,
-        uint256 strike_,
-        uint256 maturity_,
-        address oracle_,
-        string memory pName_,
-        string memory pSymbol_,
-        string memory nName_,
-        string memory nSymbol_
-    ) {
+    constructor(uint256 strike_, uint256 maturity_, address oracle_) {
         if (strike_ == 0) revert ZeroStrike();
         if (strike_ > type(uint256).max / ONE) revert StrikeTooLarge();
         if (maturity_ == 0) revert ZeroMaturity();
         if (oracle_ == address(0)) revert ZeroOracle();
 
-        ticker = ticker_;
         strike = strike_;
         maturity = maturity_;
         oracle = IPriceOracle(oracle_);
-        pToken = new ClaimToken(pName_, pSymbol_);
-        nToken = new ClaimToken(nName_, nSymbol_);
+        pToken = new ClaimToken("Protected ETH/USDC", "pETHUSDC");
+        nToken = new ClaimToken("Complement ETH/USDC", "nETHUSDC");
     }
 
     /// @notice Splits ETH into equal P and N claim tokens before maturity.
@@ -162,8 +145,8 @@ contract OptionSeries {
     }
 
     /// @notice Finalizes settlement payouts from the oracle after maturity.
-    /// @dev With resolved value `x`, P receives `min(1, strike / x)` ETH per
-    ///      claim and N receives the complementary payout. Payouts are scaled
+    /// @dev With resolved ETH/USDC price `x`, P receives `min(1, strike / x)` ETH
+    ///      per claim and N receives the complementary payout. Payouts are scaled
     ///      by 1e18 and sum to exactly `ONE`.
     function settle() external {
         if (settled) revert AlreadySettled();

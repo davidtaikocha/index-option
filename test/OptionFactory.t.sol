@@ -8,13 +8,7 @@ import {TestBase, Vm} from "./TestBase.sol";
 
 contract OptionFactoryTest is TestBase {
     event OptionSeriesCreated(
-        address indexed series,
-        string ticker,
-        uint256 strike,
-        uint256 maturity,
-        address oracle,
-        address pToken,
-        address nToken
+        address indexed series, uint256 strike, uint256 maturity, address oracle, address pToken, address nToken
     );
 
     OptionFactory internal factory;
@@ -27,42 +21,40 @@ contract OptionFactoryTest is TestBase {
         maturity = block.timestamp + 30 days;
     }
 
-    function testCreateSeriesDeploysConfiguredMarket() public {
+    function testCreateSeriesDeploysConfiguredEthUsdcMarket() public {
         vm.recordLogs();
-        address seriesAddress = factory.createSeries(
-            "USD/ETH", 2000e18, maturity, address(oracle), "P USD/ETH 2000", "pUSD2000", "N USD/ETH 2000", "nUSD2000"
-        );
+        address seriesAddress = factory.createSeries(2000e18, maturity, address(oracle));
 
         OptionSeries series = OptionSeries(seriesAddress);
         Vm.Log[] memory logs = vm.getRecordedLogs();
-        assertEq(logs.length, 1, "event count");
-        assertEq(logs[0].emitter, address(factory), "event emitter");
-        assertEq(logs[0].topics.length, 2, "event topic count");
-        assertEq(
-            logs[0].topics[0],
-            keccak256("OptionSeriesCreated(address,string,uint256,uint256,address,address,address)"),
-            "event signature"
-        );
-        assertEq(address(uint160(uint256(logs[0].topics[1]))), seriesAddress, "event series topic");
+        Vm.Log memory seriesCreatedLog;
+        bool foundSeriesCreatedLog;
 
-        (
-            string memory eventTicker,
-            uint256 eventStrike,
-            uint256 eventMaturity,
-            address eventOracle,
-            address eventPToken,
-            address eventNToken
-        ) = abi.decode(logs[0].data, (string, uint256, uint256, address, address, address));
+        for (uint256 i; i < logs.length; i++) {
+            if (
+                logs[i].emitter == address(factory) && logs[i].topics.length > 0
+                    && logs[i].topics[0] == OptionSeriesCreated.selector
+            ) {
+                seriesCreatedLog = logs[i];
+                foundSeriesCreatedLog = true;
+                break;
+            }
+        }
 
-        assertStrEq(series.ticker(), "USD/ETH", "ticker");
+        assertTrue(foundSeriesCreatedLog, "series created event");
+        assertEq(seriesCreatedLog.topics.length, 2, "event topic count");
+        assertEq(address(uint160(uint256(seriesCreatedLog.topics[1]))), seriesAddress, "event series topic");
+
+        (uint256 eventStrike, uint256 eventMaturity, address eventOracle, address eventPToken, address eventNToken) =
+            abi.decode(seriesCreatedLog.data, (uint256, uint256, address, address, address));
+
         assertEq(series.strike(), 2000e18, "strike");
         assertEq(series.maturity(), maturity, "maturity");
         assertEq(address(series.oracle()), address(oracle), "oracle");
-        assertStrEq(series.pToken().name(), "P USD/ETH 2000", "P name");
-        assertStrEq(series.pToken().symbol(), "pUSD2000", "P symbol");
-        assertStrEq(series.nToken().name(), "N USD/ETH 2000", "N name");
-        assertStrEq(series.nToken().symbol(), "nUSD2000", "N symbol");
-        assertStrEq(eventTicker, series.ticker(), "event ticker");
+        assertStrEq(series.pToken().name(), "Protected ETH/USDC", "P name");
+        assertStrEq(series.pToken().symbol(), "pETHUSDC", "P symbol");
+        assertStrEq(series.nToken().name(), "Complement ETH/USDC", "N name");
+        assertStrEq(series.nToken().symbol(), "nETHUSDC", "N symbol");
         assertEq(eventStrike, series.strike(), "event strike");
         assertEq(eventMaturity, series.maturity(), "event maturity");
         assertEq(eventOracle, address(series.oracle()), "event oracle");
@@ -72,41 +64,24 @@ contract OptionFactoryTest is TestBase {
 
     function testCreateSeriesRejectsZeroStrike() public {
         vm.expectRevert(OptionSeries.ZeroStrike.selector);
-        factory.createSeries(
-            "USD/ETH", 0, maturity, address(oracle), "P USD/ETH 2000", "pUSD2000", "N USD/ETH 2000", "nUSD2000"
-        );
+        factory.createSeries(0, maturity, address(oracle));
     }
 
     function testCreateSeriesRejectsZeroMaturity() public {
         vm.expectRevert(OptionSeries.ZeroMaturity.selector);
-        factory.createSeries(
-            "USD/ETH", 2000e18, 0, address(oracle), "P USD/ETH 2000", "pUSD2000", "N USD/ETH 2000", "nUSD2000"
-        );
+        factory.createSeries(2000e18, 0, address(oracle));
     }
 
     function testCreateSeriesRejectsStrikeTooLarge() public {
-        OptionSeries referenceSeries = new OptionSeries(
-            "USD/ETH", 2000e18, maturity, address(oracle), "P USD/ETH 2000", "pUSD2000", "N USD/ETH 2000", "nUSD2000"
-        );
+        OptionSeries referenceSeries = new OptionSeries(2000e18, maturity, address(oracle));
         uint256 strikeTooLarge = type(uint256).max / referenceSeries.ONE() + 1;
 
         vm.expectRevert(OptionSeries.StrikeTooLarge.selector);
-        factory.createSeries(
-            "USD/ETH",
-            strikeTooLarge,
-            maturity,
-            address(oracle),
-            "P USD/ETH 2000",
-            "pUSD2000",
-            "N USD/ETH 2000",
-            "nUSD2000"
-        );
+        factory.createSeries(strikeTooLarge, maturity, address(oracle));
     }
 
     function testCreateSeriesRejectsZeroOracle() public {
         vm.expectRevert(OptionSeries.ZeroOracle.selector);
-        factory.createSeries(
-            "USD/ETH", 2000e18, maturity, address(0), "P USD/ETH 2000", "pUSD2000", "N USD/ETH 2000", "nUSD2000"
-        );
+        factory.createSeries(2000e18, maturity, address(0));
     }
 }

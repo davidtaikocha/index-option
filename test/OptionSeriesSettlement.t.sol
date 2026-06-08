@@ -17,9 +17,7 @@ contract OptionSeriesSettlementTest is TestBase {
     function setUp() public {
         oracle = new MockPriceOracle();
         maturity = block.timestamp + 7 days;
-        series = new OptionSeries(
-            "USD/ETH", 2000e18, maturity, address(oracle), "P USD/ETH 2000", "pUSD2000", "N USD/ETH 2000", "nUSD2000"
-        );
+        series = new OptionSeries(2000e18, maturity, address(oracle));
         pToken = series.pToken();
         nToken = series.nToken();
         vm.deal(alice, 20 ether);
@@ -34,16 +32,7 @@ contract OptionSeriesSettlementTest is TestBase {
 
     function testConstructorRejectsStrikeThatCanOverflowSettlementMath() public {
         vm.expectRevert(OptionSeries.StrikeTooLarge.selector);
-        new OptionSeries(
-            "USD/ETH",
-            type(uint256).max / 1e18 + 1,
-            maturity,
-            address(oracle),
-            "P USD/ETH overflow",
-            "pUSDOverflow",
-            "N USD/ETH overflow",
-            "nUSDOverflow"
-        );
+        new OptionSeries(type(uint256).max / 1e18 + 1, maturity, address(oracle));
     }
 
     function testSettleRejectsUnresolvedOracle() public {

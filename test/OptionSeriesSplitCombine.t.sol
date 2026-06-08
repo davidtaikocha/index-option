@@ -18,9 +18,7 @@ contract OptionSeriesSplitCombineTest is TestBase {
     function setUp() public {
         oracle = new MockPriceOracle();
         maturity = block.timestamp + 7 days;
-        series = new OptionSeries(
-            "USD/ETH", 2000e18, maturity, address(oracle), "P USD/ETH 2000", "pUSD2000", "N USD/ETH 2000", "nUSD2000"
-        );
+        series = new OptionSeries(2000e18, maturity, address(oracle));
         pToken = series.pToken();
         nToken = series.nToken();
         vm.deal(alice, 10 ether);
@@ -35,6 +33,13 @@ contract OptionSeriesSplitCombineTest is TestBase {
         assertEq(nToken.balanceOf(alice), 2 ether, "alice N balance");
         assertEq(pToken.totalSupply(), 2 ether, "P supply");
         assertEq(nToken.totalSupply(), 2 ether, "N supply");
+    }
+
+    function testSeriesUsesFixedEthUsdcTokenMetadata() public view {
+        assertStrEq(pToken.name(), "Protected ETH/USDC", "P token name");
+        assertStrEq(pToken.symbol(), "pETHUSDC", "P token symbol");
+        assertStrEq(nToken.name(), "Complement ETH/USDC", "N token name");
+        assertStrEq(nToken.symbol(), "nETHUSDC", "N token symbol");
     }
 
     function testCombineBurnsClaimsAndReturnsEthBeforeMaturity() public {

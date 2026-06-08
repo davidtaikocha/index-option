@@ -11,7 +11,7 @@ contract ClaimTokenTest is TestBase {
     address internal carol = address(0xCA20);
 
     function setUp() public {
-        token = new ClaimToken("P USD/ETH", "pUSD");
+        token = new ClaimToken("Protected ETH/USDC", "pETHUSDC");
     }
 
     function testSeriesCanMintAndBurn() public {
