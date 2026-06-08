@@ -45,4 +45,24 @@ contract OptionPoolFactoryTest is PoolTestBase {
         factory.setPoolImplementation(address(newImpl));
         assertEq(factory.poolImplementation(), address(newImpl), "impl updated");
     }
+
+    function testCreatePoolRejectsZeroSeries() public {
+        vm.expectRevert(OptionPoolFactory.ZeroSeries.selector);
+        factory.createPool(address(0));
+    }
+
+    function testInitializeRejectsZeroUpgradeAdmin() public {
+        OptionPool poolImpl = new OptionPool();
+        OptionPoolFactory impl = new OptionPoolFactory();
+        bytes memory initData = abi.encodeCall(OptionPoolFactory.initialize, (address(0), address(poolImpl)));
+        vm.expectRevert(OptionPoolFactory.ZeroUpgradeAdmin.selector);
+        new ERC1967Proxy(address(impl), initData);
+    }
+
+    function testInitializeRejectsZeroPoolImplementation() public {
+        OptionPoolFactory impl = new OptionPoolFactory();
+        bytes memory initData = abi.encodeCall(OptionPoolFactory.initialize, (upgradeAdmin, address(0)));
+        vm.expectRevert(OptionPoolFactory.ZeroPoolImplementation.selector);
+        new ERC1967Proxy(address(impl), initData);
+    }
 }

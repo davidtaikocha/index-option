@@ -42,5 +42,20 @@ contract OptionPoolUpgradeabilityTest is PoolTestBase {
         vm.prank(upgradeAdmin);
         factory.upgradeToAndCall(address(newImpl), "");
         assertEq(_proxyImplementation(address(factory)), address(newImpl), "factory upgraded");
+        assertEq(factory.poolImplementation(), address(poolImpl), "impl preserved");
+        assertEq(factory.owner(), upgradeAdmin, "owner preserved");
+    }
+
+    function testFactoryUpgradeRequiresOwner() public {
+        OptionPool poolImpl = new OptionPool();
+        OptionPoolFactory impl = new OptionPoolFactory();
+        bytes memory initData = abi.encodeCall(OptionPoolFactory.initialize, (upgradeAdmin, address(poolImpl)));
+        ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
+        OptionPoolFactory factory = OptionPoolFactory(address(proxy));
+
+        OptionPoolFactory newImpl = new OptionPoolFactory();
+        vm.expectRevert();
+        vm.prank(trader);
+        factory.upgradeToAndCall(address(newImpl), "");
     }
 }
