@@ -1,9 +1,15 @@
 # Index Options
 
-Foundry prototype for ETH-collateralized ETH/USDC P/N option claims, based on the idea in
+ETH-collateralized ETH/USDC **P / N** option primitive, based on the idea in
 [Building index-tracking assets on top of options instead of debt](https://ethresear.ch/t/building-index-tracking-assets-on-top-of-options-instead-of-debt/25036/).
+The repo contains the Solidity contracts (Foundry) plus a SvelteKit web app for the
+primary market, both targeting the Taiko Hoodi testnet.
 
-The project implements the core P/N option primitive only for ETH/USDC. It does not include an automated index wrapper, AMM, rebalancer, real oracle integration, dispute process, or production deployment flow.
+- **Live app:** https://index-option-ui.vercel.app
+- **Network:** Taiko Hoodi (chain id `167013`) · RPC `https://rpc.hoodi.taiko.xyz` · explorer `https://hoodi.taikoscan.io`
+- **OptionFactory:** [`0x32231734d2F09fAa3b6bE8c50D716a94f5519A88`](https://hoodi.taikoscan.io/address/0x32231734d2F09fAa3b6bE8c50D716a94f5519A88)
+
+> Research prototype. Not audited. Do not use with real funds.
 
 ## Concept
 
@@ -22,6 +28,9 @@ payoutN = 1e18 - payoutP;
 Token amounts align with wei. Depositing `1 wei` mints `1` P unit and `1` N unit.
 
 ## Contracts
+
+The option contracts are UUPS-upgradeable (`OwnableUpgradeable` + `UUPSUpgradeable`); the
+factory deploys an ERC1967 proxy per series.
 
 ### `ClaimToken`
 
@@ -53,7 +62,9 @@ Safety details:
 
 ### `OptionFactory`
 
-Stateless factory that deploys `OptionSeries` contracts and emits the deployed series plus P/N token addresses.
+UUPS-upgradeable factory that deploys `OptionSeries` proxies from a shared implementation and
+emits the deployed series plus its P/N token addresses. The series implementation is
+upgradeable via `setSeriesImplementation` by the owner.
 
 ### `IPriceOracle`
 
@@ -65,41 +76,68 @@ function getResolvedValue(address series) external view returns (bool resolved, 
 
 The core contracts depend only on this interface. Tests use `MockPriceOracle`.
 
+## Web app (`web/`)
+
+A bridge-ui-styled SvelteKit dapp for the **primary market** — create a series, split ETH into
+P/N, and combine P/N back to ETH. Settlement and the secondary market are out of scope.
+
+- Stack: SvelteKit + `@wagmi/core` + `viem` + Tailwind/DaisyUI.
+- Public config (factory address, RPC, chain, explorer, oracle) is committed in
+  `web/src/lib/env.ts`; there is no `.env` and no Vercel env config is required.
+- Series are created against a fixed oracle EOA
+  (`0x5f2b097ffF3BC8fE3EB254aCCBe7E81Fe50160AA`); settlement is not wired into the UI.
+- Contract ABIs are generated from the Foundry `out/` artifacts and committed, so the app
+  builds without Foundry.
+
+```bash
+cd web
+npm install
+npm run gen:abi   # regenerate ABIs from ../out (requires `forge build` first)
+npm run dev       # local dev server
+npm run build     # production build (@sveltejs/adapter-vercel)
+```
+
+Deployed to Vercel: https://index-option-ui.vercel.app
+
+## Repository layout
+
+```
+src/            Solidity contracts (OptionFactory, OptionSeries, ClaimToken, interfaces)
+test/           Foundry tests, incl. UUPS upgradeability coverage
+script/         Deploy.s.sol (impls + factory proxy), DeploySeries.s.sol (create a series)
+web/            SvelteKit primary-market dapp
+```
+
 ## Development
 
 Install Foundry, then run:
 
 ```bash
-forge test -vvv
+forge test -vvv     # run the test suite
+forge fmt           # format Solidity
+git diff --check    # check whitespace
 ```
 
-Format Solidity:
+## Deployment
 
 ```bash
-forge fmt
+# Deploy OptionSeries + OptionFactory implementations and the factory proxy.
+forge script script/Deploy.s.sol --rpc-url "$RPC_URL" --broadcast
+
+# Create a new series through an existing factory proxy.
+forge script script/DeploySeries.s.sol --rpc-url "$RPC_URL" --broadcast
 ```
 
-Check whitespace:
+`Deploy.s.sol` reads `PRIVATE_KEY` and optional `UPGRADE_ADMIN`; `DeploySeries.s.sol` also reads
+`OPTION_FACTORY`, `SERIES_STRIKE`, `SERIES_MATURITY`, and `SERIES_ORACLE`. See `.env.example`.
 
-```bash
-git diff --check
-```
+## Test coverage
 
-## Test Coverage
-
-The test suite covers:
-
-- Restricted mint/burn and ERC20-like transfer behavior.
-- Splitting ETH into equal P/N claims.
-- Combining equal P/N claims before settlement.
-- Maturity and lifecycle guards.
-- Oracle settlement below, at, and above strike.
-- Independent P/N redemption.
-- Zero receiver handling before burns.
-- Fixed-point overflow guards.
-- Fragmented redemption dust handling.
-- Factory deployment, event contents, and constructor error propagation.
+The Foundry suite covers restricted mint/burn and ERC20-like transfers, splitting and combining,
+maturity and lifecycle guards, oracle settlement below/at/above strike, independent P/N redemption,
+zero-receiver handling, fixed-point overflow guards, fragmented redemption dust, UUPS
+upgradeability and authorization, and factory deployment/event contents.
 
 ## Status
 
-Research prototype. Not audited. Do not use with real funds.
+Research prototype on testnet. Not audited. Do not use with real funds.
