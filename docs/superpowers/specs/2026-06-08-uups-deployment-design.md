@@ -170,10 +170,9 @@ Create `script/DeploySeries.s.sol`:
 
 - read `PRIVATE_KEY`;
 - read `OPTION_FACTORY`;
-- read `STRIKE`;
-- read `MATURITY`;
-- read `ORACLE`;
-- call `OptionFactory.createSeries(STRIKE, MATURITY, ORACLE)`;
+- read per-series creation inputs `SERIES_STRIKE`, `SERIES_MATURITY`, and
+  `SERIES_ORACLE`;
+- call `OptionFactory.createSeries(SERIES_STRIKE, SERIES_MATURITY, SERIES_ORACLE)`;
 - log:
   - series proxy;
   - P token;
@@ -190,15 +189,17 @@ RPC_URL=
 PRIVATE_KEY=
 UPGRADE_ADMIN=0x0000000000000000000000000000000000000000
 OPTION_FACTORY=
-STRIKE=2000000000000000000000
-MATURITY=
-ORACLE=
 ETHERSCAN_API_KEY=
 ```
 
 `UPGRADE_ADMIN` may be left unset or set to the zero address for local/dev
 scripts. In either case, deployment defaults it to the broadcaster address. For
 shared environments, it must be set explicitly to a nonzero address.
+
+Strike, maturity, and oracle are not base deployment configuration. They are
+chosen by the account creating a specific P/N series. `DeploySeries.s.sol` may
+read them from script-specific environment variables for CLI convenience, but
+frontends and users should pass those values at series creation time.
 
 ## Foundry Configuration
 
@@ -230,7 +231,8 @@ Add coverage for:
 - deploy scripts compiling;
 - `Deploy.s.sol` dry-running against a local Anvil-style environment;
 - `DeploySeries.s.sol` dry-running against a local Anvil-style environment when
-  `OPTION_FACTORY` points at an existing factory proxy.
+  `OPTION_FACTORY`, `SERIES_STRIKE`, `SERIES_MATURITY`, and `SERIES_ORACLE`
+  point at an existing factory proxy and valid per-series inputs.
 
 Existing behavioral coverage must still pass:
 
@@ -256,7 +258,8 @@ git diff --check
 
 The script runs should be dry runs unless `--broadcast` is intentionally added.
 `DeploySeries.s.sol` requires `OPTION_FACTORY` to point at an existing factory
-proxy in that local environment.
+proxy in that local environment, and requires valid `SERIES_STRIKE`,
+`SERIES_MATURITY`, and `SERIES_ORACLE` values for the series being created.
 
 ## Acceptance Criteria
 
