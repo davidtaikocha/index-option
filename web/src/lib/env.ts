@@ -10,3 +10,6 @@ export const EXPLORER_URL = 'https://hoodi.taikoscan.io';
 // Every series is created against this fixed oracle EOA. Settlement is out of
 // scope for this UI, so the oracle is not user-selectable.
 export const SERIES_ORACLE = '0x5f2b097ffF3BC8fE3EB254aCCBe7E81Fe50160AA' as Address;
+
+// OptionPoolFactory proxy (secondary-market AMM).
+export const POOL_FACTORY = '0xDed394E8bb1e7E77F0B443fBdD50089aFB07d583' as Address;

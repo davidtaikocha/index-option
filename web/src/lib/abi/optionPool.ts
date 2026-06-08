@@ -1,12 +1,29 @@
-export const optionSeriesAbi = [
+export const optionPoolAbi = [
   {
     "type": "constructor",
     "inputs": [],
     "stateMutability": "nonpayable"
   },
   {
+    "type": "receive",
+    "stateMutability": "payable"
+  },
+  {
     "type": "function",
-    "name": "MAX_AMOUNT",
+    "name": "BPS",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "MAX_FEE_BPS",
     "inputs": [],
     "outputs": [
       {
@@ -45,75 +62,109 @@ export const optionSeriesAbi = [
   },
   {
     "type": "function",
-    "name": "combine",
+    "name": "buyN",
     "inputs": [
       {
-        "name": "amount",
+        "name": "minOut",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "outN",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "buyP",
+    "inputs": [
+      {
+        "name": "minOut",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "outP",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "feeBps",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "fund",
+    "inputs": [
+      {
+        "name": "priceP",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "sharesMinted",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "getReserves",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
         "type": "uint256",
         "internalType": "uint256"
       },
       {
-        "name": "receiver",
-        "type": "address",
-        "internalType": "address"
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "initialize",
     "inputs": [
       {
-        "name": "strike_",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "maturity_",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "oracle_",
+        "name": "series_",
         "type": "address",
         "internalType": "address"
       },
       {
-        "name": "upgradeAdmin_",
+        "name": "owner_",
         "type": "address",
         "internalType": "address"
       }
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "maturity",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "nRemainder",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -124,19 +175,6 @@ export const optionSeriesAbi = [
         "name": "",
         "type": "address",
         "internalType": "contract ClaimToken"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "oracle",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "contract IPriceOracle"
       }
     ],
     "stateMutability": "view"
@@ -156,19 +194,6 @@ export const optionSeriesAbi = [
   },
   {
     "type": "function",
-    "name": "pRemainder",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "pToken",
     "inputs": [],
     "outputs": [
@@ -176,32 +201,6 @@ export const optionSeriesAbi = [
         "name": "",
         "type": "address",
         "internalType": "contract ClaimToken"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "payoutN",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "payoutP",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
       }
     ],
     "stateMutability": "view"
@@ -221,51 +220,79 @@ export const optionSeriesAbi = [
   },
   {
     "type": "function",
-    "name": "redeemN",
+    "name": "quoteBuyN",
     "inputs": [
       {
-        "name": "amount",
+        "name": "eth",
         "type": "uint256",
         "internalType": "uint256"
-      },
-      {
-        "name": "receiver",
-        "type": "address",
-        "internalType": "address"
       }
     ],
     "outputs": [
       {
-        "name": "ethPaid",
+        "name": "",
         "type": "uint256",
         "internalType": "uint256"
       }
     ],
-    "stateMutability": "nonpayable"
+    "stateMutability": "view"
   },
   {
     "type": "function",
-    "name": "redeemP",
+    "name": "quoteBuyP",
     "inputs": [
       {
-        "name": "amount",
+        "name": "eth",
         "type": "uint256",
         "internalType": "uint256"
-      },
-      {
-        "name": "receiver",
-        "type": "address",
-        "internalType": "address"
       }
     ],
     "outputs": [
       {
-        "name": "ethPaid",
+        "name": "",
         "type": "uint256",
         "internalType": "uint256"
       }
     ],
-    "stateMutability": "nonpayable"
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "quoteSellN",
+    "inputs": [
+      {
+        "name": "inN",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "quoteSellP",
+    "inputs": [
+      {
+        "name": "inP",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -276,7 +303,7 @@ export const optionSeriesAbi = [
   },
   {
     "type": "function",
-    "name": "resolvedValue",
+    "name": "reserveN",
     "inputs": [],
     "outputs": [
       {
@@ -289,46 +316,126 @@ export const optionSeriesAbi = [
   },
   {
     "type": "function",
-    "name": "settle",
-    "inputs": [],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "settled",
+    "name": "reserveP",
     "inputs": [],
     "outputs": [
       {
         "name": "",
-        "type": "bool",
-        "internalType": "bool"
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "stateMutability": "view"
   },
   {
     "type": "function",
-    "name": "split",
+    "name": "sellN",
     "inputs": [
       {
-        "name": "receiver",
+        "name": "inN",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "minEthOut",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "ethOut",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "sellP",
+    "inputs": [
+      {
+        "name": "inP",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "minEthOut",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "ethOut",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "series",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract OptionSeries"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "setFee",
+    "inputs": [
+      {
+        "name": "newFeeBps",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "sharesOf",
+    "inputs": [
+      {
+        "name": "",
         "type": "address",
         "internalType": "address"
       }
     ],
     "outputs": [
       {
-        "name": "amount",
+        "name": "",
         "type": "uint256",
         "internalType": "uint256"
       }
     ],
-    "stateMutability": "payable"
+    "stateMutability": "view"
   },
   {
     "type": "function",
-    "name": "strike",
+    "name": "spotPriceP",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "totalShares",
     "inputs": [],
     "outputs": [
       {
@@ -354,6 +461,30 @@ export const optionSeriesAbi = [
   },
   {
     "type": "function",
+    "name": "transferShares",
+    "inputs": [
+      {
+        "name": "to",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "upgradeToAndCall",
     "inputs": [
       {
@@ -371,23 +502,103 @@ export const optionSeriesAbi = [
     "stateMutability": "payable"
   },
   {
-    "type": "event",
-    "name": "Combined",
+    "type": "function",
+    "name": "withdraw",
     "inputs": [
       {
-        "name": "user",
+        "name": "shareAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "outP",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "outN",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "event",
+    "name": "Bought",
+    "inputs": [
+      {
+        "name": "buyer",
         "type": "address",
         "indexed": true,
         "internalType": "address"
       },
       {
-        "name": "receiver",
+        "name": "isP",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      },
+      {
+        "name": "ethIn",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "amountOut",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "FeeSet",
+    "inputs": [
+      {
+        "name": "feeBps",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Funded",
+    "inputs": [
+      {
+        "name": "funder",
         "type": "address",
         "indexed": true,
         "internalType": "address"
       },
       {
-        "name": "amount",
+        "name": "ethIn",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "addedP",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "addedN",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "shares",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
@@ -429,22 +640,16 @@ export const optionSeriesAbi = [
   },
   {
     "type": "event",
-    "name": "Redeemed",
+    "name": "SharesTransfer",
     "inputs": [
       {
-        "name": "user",
+        "name": "from",
         "type": "address",
         "indexed": true,
         "internalType": "address"
       },
       {
-        "name": "receiver",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "token",
+        "name": "to",
         "type": "address",
         "indexed": true,
         "internalType": "address"
@@ -454,59 +659,34 @@ export const optionSeriesAbi = [
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
-      },
-      {
-        "name": "ethPaid",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
       }
     ],
     "anonymous": false
   },
   {
     "type": "event",
-    "name": "Settled",
+    "name": "Sold",
     "inputs": [
       {
-        "name": "resolvedValue",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      },
-      {
-        "name": "payoutP",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      },
-      {
-        "name": "payoutN",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "Split",
-    "inputs": [
-      {
-        "name": "user",
+        "name": "seller",
         "type": "address",
         "indexed": true,
         "internalType": "address"
       },
       {
-        "name": "receiver",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
+        "name": "isP",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
       },
       {
-        "name": "amount",
+        "name": "amountIn",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "ethOut",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
@@ -528,6 +708,37 @@ export const optionSeriesAbi = [
     "anonymous": false
   },
   {
+    "type": "event",
+    "name": "Withdrawn",
+    "inputs": [
+      {
+        "name": "lp",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "shares",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "outP",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "outN",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
     "type": "error",
     "name": "AddressEmptyCode",
     "inputs": [
@@ -537,21 +748,6 @@ export const optionSeriesAbi = [
         "internalType": "address"
       }
     ]
-  },
-  {
-    "type": "error",
-    "name": "AlreadySettled",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "AmountTooLarge",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "CombineAfterSettlement",
-    "inputs": []
   },
   {
     "type": "error",
@@ -581,27 +777,32 @@ export const optionSeriesAbi = [
   },
   {
     "type": "error",
+    "name": "FeeTooHigh",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InsufficientOutput",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InsufficientShares",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "InvalidInitialization",
     "inputs": []
   },
   {
     "type": "error",
-    "name": "InvalidOracleValue",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "InvalidRecipient",
+    "name": "InvalidPrice",
     "inputs": []
   },
   {
     "type": "error",
     "name": "NotInitializing",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "OracleUnresolved",
     "inputs": []
   },
   {
@@ -628,22 +829,12 @@ export const optionSeriesAbi = [
   },
   {
     "type": "error",
-    "name": "RedeemBeforeSettlement",
+    "name": "PoolFrozen",
     "inputs": []
   },
   {
     "type": "error",
-    "name": "SettleBeforeMaturity",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "SplitAfterSettlement",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "StrikeTooLarge",
+    "name": "ReentrancyGuardReentrantCall",
     "inputs": []
   },
   {
@@ -665,26 +856,6 @@ export const optionSeriesAbi = [
   {
     "type": "error",
     "name": "ZeroAmount",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "ZeroMaturity",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "ZeroOracle",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "ZeroStrike",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "ZeroUpgradeAdmin",
     "inputs": []
   }
 ] as const;

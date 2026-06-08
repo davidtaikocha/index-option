@@ -11,7 +11,9 @@ mkdirSync(abiDir, { recursive: true });
 const targets = [
   ['OptionFactory.sol/OptionFactory.json', 'optionFactory', false],
   ['OptionSeries.sol/OptionSeries.json', 'optionSeries', false],
-  ['ClaimToken.sol/ClaimToken.json', 'claimToken', false]
+  ['ClaimToken.sol/ClaimToken.json', 'claimToken', false],
+  ['OptionPool.sol/OptionPool.json', 'optionPool', false],
+  ['OptionPoolFactory.sol/OptionPoolFactory.json', 'optionPoolFactory', false]
 ];
 
 for (const [path, name, withBytecode] of targets) {
