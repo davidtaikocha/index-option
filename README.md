@@ -1,13 +1,13 @@
 # Index Options
 
-Foundry prototype for ETH-backed index-tracking option claims, based on the idea in
+Foundry prototype for ETH-collateralized ETH/USDC P/N option claims, based on the idea in
 [Building index-tracking assets on top of options instead of debt](https://ethresear.ch/t/building-index-tracking-assets-on-top-of-options-instead-of-debt/25036/).
 
-The project implements the core P/N option primitive only. It does not include an automated index wrapper, AMM, rebalancer, real oracle integration, dispute process, or production deployment flow.
+The project implements the core P/N option primitive only for ETH/USDC. It does not include an automated index wrapper, AMM, rebalancer, real oracle integration, dispute process, or production deployment flow.
 
 ## Concept
 
-Each option series is backed by ETH collateral and has two claim tokens:
+Each option series is backed by ETH collateral and settles against an ETH/USDC oracle price. It has two claim tokens:
 
 - `P`: the protected or capped upside side.
 - `N`: the complementary side.
@@ -34,7 +34,7 @@ Minimal ERC20-like claim token used for P and N claims.
 
 ### `OptionSeries`
 
-Self-contained option market for one ticker, strike, maturity, and oracle.
+Self-contained ETH/USDC option market for one strike, maturity, and oracle.
 
 Main lifecycle:
 
@@ -57,13 +57,13 @@ Stateless factory that deploys `OptionSeries` contracts and emits the deployed s
 
 ### `IPriceOracle`
 
-Small oracle interface:
+Small oracle interface that returns the resolved ETH/USDC price:
 
 ```solidity
 function getResolvedValue(address series) external view returns (bool resolved, uint256 value);
 ```
 
-The production contracts depend only on this interface. Tests use `MockPriceOracle`.
+The core contracts depend only on this interface. Tests use `MockPriceOracle`.
 
 ## Development
 

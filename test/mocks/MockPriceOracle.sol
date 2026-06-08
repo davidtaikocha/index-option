@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 import {IPriceOracle} from "../../src/interfaces/IPriceOracle.sol";
 
 /// @title MockPriceOracle
-/// @notice Test-only oracle that stores resolved values by option series address.
+/// @notice Test-only oracle that stores resolved ETH/USDC prices by option series address.
 /// @dev This mock intentionally has no access control so tests can freely set,
 ///      clear, and overwrite oracle state for each scenario.
 contract MockPriceOracle is IPriceOracle {
@@ -12,7 +12,7 @@ contract MockPriceOracle is IPriceOracle {
     struct Resolution {
         /// @notice Whether the series has been resolved.
         bool resolved;
-        /// @notice Resolved 1e18 fixed-point ticker value.
+        /// @notice Resolved 1e18 fixed-point ETH/USDC price.
         uint256 value;
     }
 
