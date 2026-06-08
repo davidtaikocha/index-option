@@ -164,6 +164,24 @@ contract OptionPoolTest is PoolTestBase {
         pool.setFee(101);
     }
 
+    function testDustFundRevertsInsteadOfMintingZeroShares() public {
+        // First fund: 1 wei ETH → totalShares = 1, reserveP = 1, reserveN = 1
+        _fundFirst(lp, 1, 0.5e18);
+        // Inflate reserveP to 1e18 via vm.store (simulating fee accrual growing reserves
+        // without minting new shares). totalShares stays at 1, so 1 wei deposit yields
+        // sharesMinted = (1 * 1) / 1e18 = 0, triggering the ZeroAmount guard.
+        vm.store(address(pool), bytes32(uint256(3)), bytes32(uint256(1e18))); // reserveP slot
+        vm.store(address(pool), bytes32(uint256(4)), bytes32(uint256(1e18))); // reserveN slot
+        // Mint matching tokens to the pool so the split→transfer accounting doesn't underflow
+        vm.prank(address(series));
+        pToken.mint(address(pool), 1e18 - 1);
+        vm.prank(address(series));
+        nToken.mint(address(pool), 1e18 - 1);
+        vm.expectRevert(OptionPool.ZeroAmount.selector);
+        vm.prank(trader);
+        pool.fund{value: 1}(0); // 1 wei, totalShares=1, reserveP=1e18 → sharesMinted floors to 0
+    }
+
     function _k() internal view returns (uint256) {
         (uint256 rp, uint256 rn) = pool.getReserves();
         return rp * rn;

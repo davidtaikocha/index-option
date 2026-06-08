@@ -99,6 +99,8 @@ contract OptionPool is Initializable, OwnableUpgradeable, UUPSUpgradeable, Reent
             }
         }
 
+        if (sharesMinted == 0) revert ZeroAmount();
+
         reserveP += addP;
         reserveN += addN;
         totalShares += sharesMinted;

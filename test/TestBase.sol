@@ -18,6 +18,7 @@ interface Vm {
     function recordLogs() external;
     function getRecordedLogs() external returns (Log[] memory);
     function load(address account, bytes32 slot) external view returns (bytes32);
+    function store(address account, bytes32 slot, bytes32 value) external;
 }
 
 contract TestBase {
