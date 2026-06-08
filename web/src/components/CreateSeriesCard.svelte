@@ -1,44 +1,30 @@
 <script lang="ts">
-  import type { Address } from 'viem';
   import { account, activeSeries, showToast } from '$lib/stores';
-  import { taikoHoodi } from '$lib/wagmi';
-  import { createSeries, deployMockOracle } from '$lib/contracts';
-  import { isPositiveDecimal, isValidAddress, toUnixSeconds, isFutureUnix } from '$lib/format';
+  import { taikoHoodi, explorerUrl } from '$lib/wagmi';
+  import { createSeries } from '$lib/contracts';
+  import { SERIES_ORACLE } from '$lib/env';
+  import { isPositiveDecimal, toUnixSeconds, isFutureUnix, shortenAddress } from '$lib/format';
 
   let strike = '';
   let maturity = '';
-  let oracle = '';
-  let deployingOracle = false;
   let submitting = false;
 
   $: onCorrectNetwork = $account.isConnected && $account.chainId === taikoHoodi.id;
-  $: maturityValid = maturity !== '' && (() => {
-    try {
-      return isFutureUnix(toUnixSeconds(maturity));
-    } catch {
-      return false;
-    }
-  })();
-  $: formValid =
-    isPositiveDecimal(strike) && maturityValid && isValidAddress(oracle) && onCorrectNetwork;
-
-  async function onDeployOracle() {
-    deployingOracle = true;
-    try {
-      const addr = await deployMockOracle();
-      oracle = addr;
-      showToast('success', 'Mock oracle deployed');
-    } catch (e) {
-      showToast('error', (e as Error).message);
-    } finally {
-      deployingOracle = false;
-    }
-  }
+  $: maturityValid =
+    maturity !== '' &&
+    (() => {
+      try {
+        return isFutureUnix(toUnixSeconds(maturity));
+      } catch {
+        return false;
+      }
+    })();
+  $: formValid = isPositiveDecimal(strike) && maturityValid && onCorrectNetwork;
 
   async function onSubmit() {
     submitting = true;
     try {
-      const info = await createSeries(strike, toUnixSeconds(maturity), oracle as Address);
+      const info = await createSeries(strike, toUnixSeconds(maturity));
       activeSeries.set(info);
       showToast('success', 'Series created');
     } catch (e) {
@@ -79,25 +65,13 @@
         {/if}
       </div>
 
-      <div>
-        <span class="mb-1.5 block text-xs font-medium uppercase tracking-wider text-grey-300">Oracle address</span>
-        <div class="flex gap-2">
-          <input
-            class="input-box min-w-0 flex-1 px-3.5 py-2.5 font-mono text-sm"
-            class:is-error={oracle !== '' && !isValidAddress(oracle)}
-            type="text"
-            bind:value={oracle}
-            placeholder="0x…" />
-          <button
-            class="btn-soft shrink-0 px-3.5 text-sm"
-            on:click={onDeployOracle}
-            disabled={!onCorrectNetwork || deployingOracle}>
-            {deployingOracle ? 'Deploying…' : 'Deploy mock'}
-          </button>
-        </div>
-        {#if oracle !== '' && !isValidAddress(oracle)}
-          <span class="mt-1.5 block text-xs text-red-300">Invalid address</span>
-        {/if}
+      <div class="flex items-center justify-between gap-2 rounded-[10px] border border-grey-700 bg-grey-900/30 px-3.5 py-2.5">
+        <span class="text-xs uppercase tracking-wider text-grey-400">Oracle</span>
+        <a
+          class="font-mono text-xs text-grey-200 transition-colors hover:text-pink-200"
+          href={`${explorerUrl}/address/${SERIES_ORACLE}`}
+          target="_blank"
+          rel="noreferrer">{shortenAddress(SERIES_ORACLE)} ↗</a>
       </div>
 
       <button class="btn-brand mt-1 w-full py-2.5 text-sm" on:click={onSubmit} disabled={!formValid || submitting}>

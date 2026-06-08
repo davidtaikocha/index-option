@@ -1,44 +1,25 @@
-import {
-  writeContract,
-  readContract,
-  waitForTransactionReceipt,
-  getWalletClient
-} from '@wagmi/core';
+import { writeContract, readContract, waitForTransactionReceipt } from '@wagmi/core';
 import { parseEventLogs, parseUnits, parseEther, type Address } from 'viem';
 import { config } from './wagmi';
-import { OPTION_FACTORY } from './env';
+import { OPTION_FACTORY, SERIES_ORACLE } from './env';
 import { optionFactoryAbi } from './abi/optionFactory';
 import { optionSeriesAbi } from './abi/optionSeries';
 import { claimTokenAbi } from './abi/claimToken';
-import { mockPriceOracleAbi, mockPriceOracleBytecode } from './abi/mockPriceOracle';
 
 const FACTORY = OPTION_FACTORY;
 
 export type SeriesAddresses = { series: Address; pToken: Address; nToken: Address };
 
-export async function deployMockOracle(): Promise<Address> {
-  const walletClient = await getWalletClient(config);
-  if (!walletClient) throw new Error('No wallet client — connect your wallet first');
-  const hash = await walletClient.deployContract({
-    abi: mockPriceOracleAbi,
-    bytecode: mockPriceOracleBytecode
-  });
-  const receipt = await waitForTransactionReceipt(config, { hash });
-  if (!receipt.contractAddress) throw new Error('Mock oracle deployment returned no address');
-  return receipt.contractAddress;
-}
-
 export async function createSeries(
   strikeHuman: string,
-  maturityUnix: bigint,
-  oracle: Address
+  maturityUnix: bigint
 ): Promise<SeriesAddresses> {
   const strike = parseUnits(strikeHuman, 18);
   const hash = await writeContract(config, {
     address: FACTORY,
     abi: optionFactoryAbi,
     functionName: 'createSeries',
-    args: [strike, maturityUnix, oracle]
+    args: [strike, maturityUnix, SERIES_ORACLE]
   });
   const receipt = await waitForTransactionReceipt(config, { hash });
   const logs = parseEventLogs({
