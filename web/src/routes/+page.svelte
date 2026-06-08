@@ -6,6 +6,7 @@
   import CreateSeriesCard from '$components/CreateSeriesCard.svelte';
   import MintCard from '$components/MintCard.svelte';
   import CombineCard from '$components/CombineCard.svelte';
+  import PoolPanel from '$components/PoolPanel.svelte';
 </script>
 
 <div class="min-h-dvh">
@@ -55,6 +56,12 @@
       <div class="reveal" style="animation-delay: 280ms">
         <CombineCard />
       </div>
+
+      {#if $activeSeries}
+        <div class="reveal" style="animation-delay: 320ms">
+          <PoolPanel info={$activeSeries} />
+        </div>
+      {/if}
     </div>
 
     <footer class="mt-10 text-center text-xs text-grey-500">
