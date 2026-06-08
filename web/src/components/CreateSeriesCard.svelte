@@ -49,41 +49,63 @@
   }
 </script>
 
-<section class="card bg-base-200 shadow-xl">
-  <div class="card-body gap-4">
-    <h2 class="card-title font-display">1 · Create series</h2>
+<section class="glass-card" data-glow-border>
+  <div class="p-6 lg:p-7">
+    <div class="mb-5 flex items-center gap-3">
+      <span class="pill flex h-7 w-7 items-center justify-center text-xs font-bold text-pink-200">1</span>
+      <h2 class="display text-lg text-grey-10">Create series</h2>
+    </div>
 
-    <label class="form-control">
-      <span class="label-text">Strike (USDC per ETH)</span>
-      <input class="input input-bordered" type="text" inputmode="decimal" bind:value={strike} placeholder="3000" />
-    </label>
-
-    <label class="form-control">
-      <span class="label-text">Maturity</span>
-      <input class="input input-bordered" type="datetime-local" bind:value={maturity} />
-      {#if maturity !== '' && !maturityValid}
-        <span class="label-text-alt text-error">Must be in the future</span>
-      {/if}
-    </label>
-
-    <label class="form-control">
-      <span class="label-text">Oracle address</span>
-      <div class="join">
-        <input class="input input-bordered join-item w-full font-mono text-sm" type="text" bind:value={oracle} placeholder="0x…" />
-        <button class="btn join-item" on:click={onDeployOracle} disabled={!onCorrectNetwork || deployingOracle}>
-          {deployingOracle ? 'Deploying…' : 'Deploy mock'}
-        </button>
+    <div class="space-y-4">
+      <div>
+        <span class="mb-1.5 block text-xs font-medium uppercase tracking-wider text-grey-300">Strike · USDC per ETH</span>
+        <input
+          class="input-box px-3.5 py-2.5 text-sm"
+          type="text"
+          inputmode="decimal"
+          bind:value={strike}
+          placeholder="3000" />
       </div>
-      {#if oracle !== '' && !isValidAddress(oracle)}
-        <span class="label-text-alt text-error">Invalid address</span>
-      {/if}
-    </label>
 
-    <button class="btn btn-primary" on:click={onSubmit} disabled={!formValid || submitting}>
-      {submitting ? 'Creating…' : 'Create series'}
-    </button>
-    {#if !onCorrectNetwork}
-      <span class="text-sm text-base-content/60">Connect to Taiko Hoodi to create a series.</span>
-    {/if}
+      <div>
+        <span class="mb-1.5 block text-xs font-medium uppercase tracking-wider text-grey-300">Maturity</span>
+        <input
+          class="input-box px-3.5 py-2.5 text-sm"
+          class:is-error={maturity !== '' && !maturityValid}
+          type="datetime-local"
+          bind:value={maturity} />
+        {#if maturity !== '' && !maturityValid}
+          <span class="mt-1.5 block text-xs text-red-300">Must be in the future</span>
+        {/if}
+      </div>
+
+      <div>
+        <span class="mb-1.5 block text-xs font-medium uppercase tracking-wider text-grey-300">Oracle address</span>
+        <div class="flex gap-2">
+          <input
+            class="input-box min-w-0 flex-1 px-3.5 py-2.5 font-mono text-sm"
+            class:is-error={oracle !== '' && !isValidAddress(oracle)}
+            type="text"
+            bind:value={oracle}
+            placeholder="0x…" />
+          <button
+            class="btn-soft shrink-0 px-3.5 text-sm"
+            on:click={onDeployOracle}
+            disabled={!onCorrectNetwork || deployingOracle}>
+            {deployingOracle ? 'Deploying…' : 'Deploy mock'}
+          </button>
+        </div>
+        {#if oracle !== '' && !isValidAddress(oracle)}
+          <span class="mt-1.5 block text-xs text-red-300">Invalid address</span>
+        {/if}
+      </div>
+
+      <button class="btn-brand mt-1 w-full py-2.5 text-sm" on:click={onSubmit} disabled={!formValid || submitting}>
+        {submitting ? 'Creating…' : 'Create series'}
+      </button>
+      {#if !onCorrectNetwork}
+        <p class="text-center text-xs text-grey-400">Connect to Taiko Hoodi to create a series.</p>
+      {/if}
+    </div>
   </div>
 </section>

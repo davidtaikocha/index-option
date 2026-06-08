@@ -15,8 +15,12 @@
 </script>
 
 {#if wrongNetwork}
-  <div class="alert alert-warning flex items-center justify-between">
-    <span>Wrong network — switch to Taiko Hoodi.</span>
-    <button class="btn btn-sm" on:click={onSwitch}>Switch</button>
+  <div
+    class="mb-6 flex items-center justify-between gap-3 rounded-[14px] border border-[#EBB222]/40 bg-[#EBB222]/10 px-4 py-3 text-sm backdrop-blur-sm">
+    <span class="flex items-center gap-2.5 text-[#FFDC85]">
+      <span class="status-dot bg-[#EBB222] shadow-[0_0_8px_#EBB222]"></span>
+      Wrong network — switch to Taiko Hoodi.
+    </span>
+    <button class="btn-soft shrink-0 px-3.5 py-1.5 text-xs" on:click={onSwitch}>Switch</button>
   </div>
 {/if}

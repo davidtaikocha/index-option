@@ -24,20 +24,30 @@
   }
 </script>
 
-<section class="card bg-base-200 shadow-xl">
-  <div class="card-body gap-4">
-    <h2 class="card-title font-display">3 · Combine (P + N → ETH)</h2>
+<section class="glass-card" data-glow-border>
+  <div class="p-6 lg:p-7">
+    <div class="mb-5 flex items-center gap-3">
+      <span class="pill flex h-7 w-7 items-center justify-center text-xs font-bold text-pink-200">3</span>
+      <h2 class="display text-lg text-grey-10">Combine · P + N back to ETH</h2>
+    </div>
 
     {#if !$activeSeries}
-      <p class="text-sm text-base-content/60">Create or load a series first.</p>
+      <p class="text-sm text-grey-400">Create or load a series first.</p>
     {:else}
-      <label class="form-control">
-        <span class="label-text">Amount to combine</span>
-        <input class="input input-bordered" type="text" inputmode="decimal" bind:value={amount} placeholder="0.1" />
-      </label>
-      <button class="btn btn-primary" on:click={onCombine} disabled={!canSubmit}>
-        {submitting ? 'Combining…' : 'Combine'}
-      </button>
+      <div class="space-y-4">
+        <div>
+          <span class="mb-1.5 block text-xs font-medium uppercase tracking-wider text-grey-300">Amount to combine</span>
+          <input
+            class="input-box px-3.5 py-2.5 text-sm"
+            type="text"
+            inputmode="decimal"
+            bind:value={amount}
+            placeholder="0.1" />
+        </div>
+        <button class="btn-brand w-full py-2.5 text-sm" on:click={onCombine} disabled={!canSubmit}>
+          {submitting ? 'Combining…' : 'Combine'}
+        </button>
+      </div>
     {/if}
   </div>
 </section>

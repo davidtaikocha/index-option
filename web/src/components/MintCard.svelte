@@ -58,34 +58,50 @@
   $: if ($activeSeries && $account.address) refreshBalances();
 </script>
 
-<section class="card bg-base-200 shadow-xl">
-  <div class="card-body gap-4">
-    <h2 class="card-title font-display">2 · Mint (split ETH → P + N)</h2>
+<section class="glass-card" data-glow-border>
+  <div class="p-6 lg:p-7">
+    <div class="mb-5 flex items-center gap-3">
+      <span class="pill flex h-7 w-7 items-center justify-center text-xs font-bold text-pink-200">2</span>
+      <h2 class="display text-lg text-grey-10">Mint · split ETH into P + N</h2>
+    </div>
 
-    {#if !$activeSeries}
-      <label class="form-control">
-        <span class="label-text">Series address</span>
-        <div class="join">
-          <input class="input input-bordered join-item w-full font-mono text-sm" type="text" bind:value={manualSeries} placeholder="0x… (or create one above)" />
-          <button class="btn join-item" on:click={onLoad} disabled={!isValidAddress(manualSeries)}>Load</button>
+    <div class="space-y-4">
+      {#if !$activeSeries}
+        <div>
+          <span class="mb-1.5 block text-xs font-medium uppercase tracking-wider text-grey-300">Series address</span>
+          <div class="flex gap-2">
+            <input
+              class="input-box min-w-0 flex-1 px-3.5 py-2.5 font-mono text-sm"
+              type="text"
+              bind:value={manualSeries}
+              placeholder="0x… or create one above" />
+            <button class="btn-soft shrink-0 px-4 text-sm" on:click={onLoad} disabled={!isValidAddress(manualSeries)}>
+              Load
+            </button>
+          </div>
         </div>
-      </label>
-    {/if}
+      {/if}
 
-    <label class="form-control">
-      <span class="label-text">ETH amount</span>
-      <input class="input input-bordered" type="text" inputmode="decimal" bind:value={amount} placeholder="0.1" />
-    </label>
-
-    <button class="btn btn-primary" on:click={onSplit} disabled={!canSubmit}>
-      {submitting ? 'Minting…' : 'Mint P + N'}
-    </button>
-
-    {#if pBalance !== null && nBalance !== null}
-      <div class="flex gap-4 text-sm">
-        <span class="badge badge-success badge-outline">P: {formatBalance(pBalance)}</span>
-        <span class="badge badge-info badge-outline">N: {formatBalance(nBalance)}</span>
+      <div>
+        <span class="mb-1.5 block text-xs font-medium uppercase tracking-wider text-grey-300">ETH amount</span>
+        <input
+          class="input-box px-3.5 py-2.5 text-sm"
+          type="text"
+          inputmode="decimal"
+          bind:value={amount}
+          placeholder="0.1" />
       </div>
-    {/if}
+
+      <button class="btn-brand w-full py-2.5 text-sm" on:click={onSplit} disabled={!canSubmit}>
+        {submitting ? 'Minting…' : 'Mint P + N'}
+      </button>
+
+      {#if pBalance !== null && nBalance !== null}
+        <div class="flex gap-2 text-xs">
+          <span class="pill flex-1 px-3 py-2 text-center font-semibold text-green-300">P · {formatBalance(pBalance)}</span>
+          <span class="pill flex-1 px-3 py-2 text-center font-semibold text-pink-200">N · {formatBalance(nBalance)}</span>
+        </div>
+      {/if}
+    </div>
   </div>
 </section>

@@ -2,12 +2,236 @@
 @tailwind components;
 @tailwind utilities;
 
-html,
-body {
-  font-family: 'Public Sans', sans-serif;
-  min-height: 100dvh;
+/* ----------------------------------------------------------------------------
+   Index Options — visual system lifted from taiko-mono bridge-ui:
+   atmospheric grid + spotlight background, glassy gradient cards with a
+   pointer-following glow border, Clash Grotesk display headings on Public Sans.
+---------------------------------------------------------------------------- */
+
+@layer base {
+  *,
+  ::before,
+  ::after {
+    text-rendering: optimizeSpeed;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    font-family: 'Public Sans', sans-serif;
+  }
+
+  html,
+  body {
+    height: 100%;
+    background: transparent;
+  }
+
+  body {
+    min-height: 100dvh;
+    color: #f3f3f3;
+  }
+
+  /* Fixed atmospheric backdrop: tiled grid + spotlight bloom over a dark ramp. */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background-image: url(/bg/grid-dark.svg), url(/bg/spotlights-dark.svg),
+      linear-gradient(270deg, #1f1f1f 0%, #000000 100%);
+    background-size: 0, cover, cover;
+    background-blend-mode: color-dodge, lighten, multiply;
+  }
+
+  @media (min-width: 768px) {
+    body::before {
+      background-size: 50px, cover, cover;
+    }
+  }
 }
 
-.font-display {
-  font-family: 'Clash Grotesk', sans-serif;
+@layer components {
+  /* Display type */
+  .display {
+    font-family: 'Clash Grotesk', sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  /* Glassy translucent card fill (border + glow handled by [data-glow-border]) */
+  .glass-card {
+    position: relative;
+    border-radius: 20px;
+    background: linear-gradient(226deg, rgba(93, 99, 111, 0.1) 1.26%, rgba(25, 30, 40, 0.2) 100%);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    box-shadow: 0px 20px 66px 0px rgba(5, 9, 18, 0.48);
+  }
+
+  /* ---- Pointer-following glow border (adapted from bridge-ui gimmicks) ----
+     Reads --x/--y (viewport px) and --xp (0..1) set on <html> by a pointermove
+     handler, then paints a magenta spotlight that rides the card border. */
+  [data-glow-border] {
+    --border-size: 1.5px;
+    --spotlight: 240px;
+    --base: 318;
+    --spread: 240;
+    --hue: calc(var(--base) + (var(--xp, 0) * var(--spread)));
+    border: var(--border-size) solid #2b303b;
+    border-radius: 20px;
+  }
+
+  [data-glow-border]::before,
+  [data-glow-border]::after {
+    content: '';
+    position: absolute;
+    inset: calc(var(--border-size) * -1);
+    border-radius: 20px;
+    border: var(--border-size) solid transparent;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    background-position: 50% 50%;
+    background-size: 100% 100%;
+    pointer-events: none;
+    mask: linear-gradient(transparent, transparent), linear-gradient(white, white);
+    mask-clip: padding-box, border-box;
+    mask-composite: intersect;
+    -webkit-mask: linear-gradient(transparent, transparent), linear-gradient(white, white);
+    -webkit-mask-clip: padding-box, border-box;
+  }
+
+  /* Saturated emphasis glow on the border */
+  [data-glow-border]::before {
+    background-image: radial-gradient(
+      calc(var(--spotlight) * 0.9) calc(var(--spotlight) * 0.9) at calc(var(--x, -999) * 1px)
+        calc(var(--y, -999) * 1px),
+      hsl(var(--hue, 318) 100% 62% / 0.95),
+      transparent 100%
+    );
+    filter: brightness(1.5);
+  }
+
+  /* White hot-spot riding on top */
+  [data-glow-border]::after {
+    background-image: radial-gradient(
+      calc(var(--spotlight) * 0.55) calc(var(--spotlight) * 0.55) at calc(var(--x, -999) * 1px)
+        calc(var(--y, -999) * 1px),
+      hsl(0 0% 100% / 0.9),
+      transparent 100%
+    );
+  }
+
+  /* Inputs: grey hairline that becomes a pink glow ring on hover/focus */
+  .input-box {
+    width: 100%;
+    border-radius: 10px;
+    background: transparent;
+    border: 1px solid #5d636f;
+    outline: none;
+    color: #f3f3f3;
+    color-scheme: dark;
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+  }
+
+  .input-box::placeholder {
+    color: #5d636f;
+  }
+
+  .input-box:hover:not(:disabled):not(:focus) {
+    border-color: transparent;
+    box-shadow: 0 0 0 2px #ff6fc8;
+  }
+
+  .input-box:focus {
+    border-color: transparent;
+    box-shadow: 0 0 0 3px #e81899;
+  }
+
+  .input-box:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .input-box.is-error {
+    border-color: transparent;
+    box-shadow: 0 0 0 2px #f15c5d;
+  }
+
+  /* Glassy pill (connect button + chips) */
+  .pill {
+    border-radius: 9999px;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border: 1px solid #2b303b;
+    background: rgba(43, 48, 59, 0.4);
+  }
+
+  /* Primary action button — Taiko pink */
+  .btn-brand {
+    border-radius: 10px;
+    background: #c8047d;
+    color: #f3f3f3;
+    font-weight: 700;
+    transition: background 0.15s ease, transform 0.08s ease, box-shadow 0.2s ease;
+  }
+  .btn-brand:hover:not(:disabled) {
+    background: #e81899;
+    box-shadow: 0 8px 28px -8px rgba(232, 24, 153, 0.7);
+  }
+  .btn-brand:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+  .btn-brand:disabled {
+    background: #2b303b;
+    color: #5d636f;
+    cursor: not-allowed;
+  }
+
+  /* Secondary / ghost outline button */
+  .btn-soft {
+    border-radius: 10px;
+    border: 1px solid #444a55;
+    background: transparent;
+    color: #cacbce;
+    font-weight: 600;
+    transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+  }
+  .btn-soft:hover:not(:disabled) {
+    border-color: #ff6fc8;
+    color: #f3f3f3;
+  }
+  .btn-soft:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+@layer utilities {
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 9999px;
+  }
+
+  /* Staggered page-load reveal */
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .reveal {
+    animation: fade-up 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal {
+      animation: none;
+    }
+  }
 }
