@@ -22,7 +22,11 @@
 
   async function refreshShares() {
     if (!$account.address) return;
-    myShares = await sharesOf(pool, $account.address as Address);
+    try {
+      myShares = await sharesOf(pool, $account.address as Address);
+    } catch {
+      // ignore transient read failures; keep prior value
+    }
   }
   $: if ($account.address) refreshShares();
 

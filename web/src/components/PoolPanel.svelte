@@ -11,7 +11,7 @@
   let pool: Address | null = null;
   let state: PoolState | null = null;
   let tab: 'trade' | 'liquidity' = 'trade';
-  let loading = false;
+  let loading = true;
   let creating = false;
 
   $: onCorrectNetwork = $account.isConnected && $account.chainId === taikoHoodi.id;
