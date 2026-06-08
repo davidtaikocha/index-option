@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {ClaimToken} from "./ClaimToken.sol";
 import {IPriceOracle} from "./interfaces/IPriceOracle.sol";
 
@@ -10,22 +13,22 @@ import {IPriceOracle} from "./interfaces/IPriceOracle.sol";
 ///      P/N claims can always be recombined into ETH. After maturity, a slow
 ///      oracle resolves the ETH/USDC price and P/N claims redeem against fixed
 ///      complementary payout ratios whose sum is exactly 1e18.
-contract OptionSeries {
+contract OptionSeries is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     /// @notice Fixed-point scale used for strikes, resolved values, and payouts.
     uint256 public constant ONE = 1e18;
     /// @notice Upper bound that keeps `amount * payout + remainder` overflow-safe.
     uint256 public constant MAX_AMOUNT = type(uint256).max / ONE - 1;
 
     /// @notice 1e18 fixed-point ETH/USDC strike price.
-    uint256 public immutable strike;
+    uint256 public strike;
     /// @notice Timestamp after which settlement can be performed.
-    uint256 public immutable maturity;
+    uint256 public maturity;
     /// @notice Oracle queried once at settlement for the ETH/USDC price.
-    IPriceOracle public immutable oracle;
+    IPriceOracle public oracle;
     /// @notice P-side claim token.
-    ClaimToken public immutable pToken;
+    ClaimToken public pToken;
     /// @notice N-side claim token.
-    ClaimToken public immutable nToken;
+    ClaimToken public nToken;
     /// @notice Whether the series has been settled.
     bool public settled;
     /// @notice ETH/USDC oracle price used at settlement.
@@ -47,6 +50,8 @@ contract OptionSeries {
     error ZeroMaturity();
     /// @notice Oracle address cannot be zero.
     error ZeroOracle();
+    /// @notice Upgrade admin address cannot be zero.
+    error ZeroUpgradeAdmin();
     /// @notice Amount cannot be zero.
     error ZeroAmount();
     /// @notice Amount is too large for safe fixed-point redemption math.
@@ -95,14 +100,27 @@ contract OptionSeries {
         address indexed user, address indexed receiver, address indexed token, uint256 amount, uint256 ethPaid
     );
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
+    /// @notice Initializes an ETH/USDC option series proxy.
     /// @param strike_ 1e18 fixed-point ETH/USDC strike price.
     /// @param maturity_ Timestamp after which settlement is allowed.
     /// @param oracle_ Oracle contract implementing `IPriceOracle`.
-    constructor(uint256 strike_, uint256 maturity_, address oracle_) {
+    /// @param upgradeAdmin_ Owner authorized to upgrade this series.
+    function initialize(uint256 strike_, uint256 maturity_, address oracle_, address upgradeAdmin_)
+        external
+        initializer
+    {
         if (strike_ == 0) revert ZeroStrike();
         if (strike_ > type(uint256).max / ONE) revert StrikeTooLarge();
         if (maturity_ == 0) revert ZeroMaturity();
         if (oracle_ == address(0)) revert ZeroOracle();
+        if (upgradeAdmin_ == address(0)) revert ZeroUpgradeAdmin();
+
+        __Ownable_init(upgradeAdmin_);
 
         strike = strike_;
         maturity = maturity_;
@@ -210,6 +228,9 @@ contract OptionSeries {
 
         emit Redeemed(msg.sender, receiver, address(token), amount, ethPaid);
     }
+
+    /// @dev Restricts UUPS upgrades to the series owner.
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
     /// @dev Sends native ETH and reverts on zero receiver or failed transfer.
     function _sendETH(address receiver, uint256 amount) internal {

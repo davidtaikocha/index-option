@@ -11,10 +11,13 @@ interface Vm {
     function warp(uint256 newTimestamp) external;
     function deal(address account, uint256 newBalance) external;
     function prank(address account) external;
+    function expectRevert() external;
     function expectRevert(bytes4 selector) external;
+    function expectRevert(bytes calldata revertData) external;
     function expectEmit(bool checkTopic1, bool checkTopic2, bool checkTopic3, bool checkData) external;
     function recordLogs() external;
     function getRecordedLogs() external returns (Log[] memory);
+    function load(address account, bytes32 slot) external view returns (bytes32);
 }
 
 contract TestBase {

@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {ClaimToken} from "../src/ClaimToken.sol";
 import {OptionSeries} from "../src/OptionSeries.sol";
 import {MockPriceOracle} from "./mocks/MockPriceOracle.sol";
-import {TestBase} from "./TestBase.sol";
+import {UUPSTestBase} from "./UUPSTestBase.sol";
 
-contract OptionSeriesSettlementTest is TestBase {
+contract OptionSeriesSettlementTest is UUPSTestBase {
     MockPriceOracle internal oracle;
     OptionSeries internal series;
     ClaimToken internal pToken;
@@ -17,7 +18,7 @@ contract OptionSeriesSettlementTest is TestBase {
     function setUp() public {
         oracle = new MockPriceOracle();
         maturity = block.timestamp + 7 days;
-        series = new OptionSeries(2000e18, maturity, address(oracle));
+        series = _deploySeriesProxy(2000e18, maturity, address(oracle));
         pToken = series.pToken();
         nToken = series.nToken();
         vm.deal(alice, 20 ether);
@@ -30,9 +31,14 @@ contract OptionSeriesSettlementTest is TestBase {
         series.settle();
     }
 
-    function testConstructorRejectsStrikeThatCanOverflowSettlementMath() public {
+    function testInitializeRejectsStrikeThatCanOverflowSettlementMath() public {
+        OptionSeries implementation = new OptionSeries();
+        bytes memory initData = abi.encodeCall(
+            OptionSeries.initialize, (type(uint256).max / 1e18 + 1, maturity, address(oracle), upgradeAdmin)
+        );
+
         vm.expectRevert(OptionSeries.StrikeTooLarge.selector);
-        new OptionSeries(type(uint256).max / 1e18 + 1, maturity, address(oracle));
+        new ERC1967Proxy(address(implementation), initData);
     }
 
     function testSettleRejectsUnresolvedOracle() public {

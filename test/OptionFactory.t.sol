@@ -4,21 +4,24 @@ pragma solidity ^0.8.24;
 import {OptionFactory} from "../src/OptionFactory.sol";
 import {OptionSeries} from "../src/OptionSeries.sol";
 import {MockPriceOracle} from "./mocks/MockPriceOracle.sol";
-import {TestBase, Vm} from "./TestBase.sol";
+import {UUPSTestBase} from "./UUPSTestBase.sol";
+import {Vm} from "./TestBase.sol";
 
-contract OptionFactoryTest is TestBase {
+contract OptionFactoryTest is UUPSTestBase {
     event OptionSeriesCreated(
         address indexed series, uint256 strike, uint256 maturity, address oracle, address pToken, address nToken
     );
 
     OptionFactory internal factory;
     MockPriceOracle internal oracle;
+    OptionSeries internal seriesImplementation;
     uint256 internal maturity;
 
     function setUp() public {
-        factory = new OptionFactory();
         oracle = new MockPriceOracle();
         maturity = block.timestamp + 30 days;
+        seriesImplementation = _deploySeriesImplementation();
+        factory = _deployFactoryProxy(address(seriesImplementation));
     }
 
     function testCreateSeriesDeploysConfiguredEthUsdcMarket() public {
@@ -51,6 +54,10 @@ contract OptionFactoryTest is TestBase {
         assertEq(series.strike(), 2000e18, "strike");
         assertEq(series.maturity(), maturity, "maturity");
         assertEq(address(series.oracle()), address(oracle), "oracle");
+        assertEq(_proxyImplementation(seriesAddress), address(seriesImplementation), "series proxy implementation");
+        assertEq(series.owner(), upgradeAdmin, "series owner");
+        assertEq(factory.owner(), upgradeAdmin, "factory owner");
+        assertEq(factory.seriesImplementation(), address(seriesImplementation), "series implementation");
         assertStrEq(series.pToken().name(), "Protected ETH/USDC", "P name");
         assertStrEq(series.pToken().symbol(), "pETHUSDC", "P symbol");
         assertStrEq(series.nToken().name(), "Complement ETH/USDC", "N name");
@@ -73,8 +80,7 @@ contract OptionFactoryTest is TestBase {
     }
 
     function testCreateSeriesRejectsStrikeTooLarge() public {
-        OptionSeries referenceSeries = new OptionSeries(2000e18, maturity, address(oracle));
-        uint256 strikeTooLarge = type(uint256).max / referenceSeries.ONE() + 1;
+        uint256 strikeTooLarge = type(uint256).max / seriesImplementation.ONE() + 1;
 
         vm.expectRevert(OptionSeries.StrikeTooLarge.selector);
         factory.createSeries(strikeTooLarge, maturity, address(oracle));

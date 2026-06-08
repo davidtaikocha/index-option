@@ -4,9 +4,9 @@ pragma solidity ^0.8.24;
 import {ClaimToken} from "../src/ClaimToken.sol";
 import {OptionSeries} from "../src/OptionSeries.sol";
 import {MockPriceOracle} from "./mocks/MockPriceOracle.sol";
-import {TestBase} from "./TestBase.sol";
+import {UUPSTestBase} from "./UUPSTestBase.sol";
 
-contract OptionSeriesSplitCombineTest is TestBase {
+contract OptionSeriesSplitCombineTest is UUPSTestBase {
     MockPriceOracle internal oracle;
     OptionSeries internal series;
     ClaimToken internal pToken;
@@ -18,7 +18,7 @@ contract OptionSeriesSplitCombineTest is TestBase {
     function setUp() public {
         oracle = new MockPriceOracle();
         maturity = block.timestamp + 7 days;
-        series = new OptionSeries(2000e18, maturity, address(oracle));
+        series = _deploySeriesProxy(2000e18, maturity, address(oracle));
         pToken = series.pToken();
         nToken = series.nToken();
         vm.deal(alice, 10 ether);
