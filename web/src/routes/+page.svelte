@@ -57,11 +57,9 @@
         <CombineCard />
       </div>
 
-      {#if $activeSeries}
-        <div class="reveal" style="animation-delay: 320ms">
-          <PoolPanel info={$activeSeries} />
-        </div>
-      {/if}
+      <div class="reveal" style="animation-delay: 320ms">
+        <PoolPanel />
+      </div>
     </div>
 
     <footer class="mt-10 text-center text-xs text-grey-500">
