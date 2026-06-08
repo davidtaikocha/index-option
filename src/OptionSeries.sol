@@ -56,8 +56,8 @@ contract OptionSeries is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     error ZeroAmount();
     /// @notice Amount is too large for safe fixed-point redemption math.
     error AmountTooLarge();
-    /// @notice Splits are only allowed before maturity.
-    error SplitAfterMaturity();
+    /// @notice Splits are only allowed before settlement.
+    error SplitAfterSettlement();
     /// @notice Combining P/N claims is disabled after settlement.
     error CombineAfterSettlement();
     /// @notice Settlement can only happen at or after maturity.
@@ -136,7 +136,7 @@ contract OptionSeries is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     function split(address receiver) external payable returns (uint256 amount) {
         if (msg.value == 0) revert ZeroAmount();
         if (msg.value > MAX_AMOUNT) revert AmountTooLarge();
-        if (block.timestamp >= maturity) revert SplitAfterMaturity();
+        if (settled) revert SplitAfterSettlement();
 
         amount = msg.value;
         pToken.mint(receiver, amount);

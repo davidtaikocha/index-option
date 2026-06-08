@@ -86,10 +86,22 @@ contract OptionSeriesSplitCombineTest is UUPSTestBase {
         series.split{value: 0}(alice);
     }
 
-    function testSplitRejectedAtMaturity() public {
+    function testSplitAllowedAfterMaturityBeforeSettlement() public {
         vm.warp(maturity);
 
-        vm.expectRevert(OptionSeries.SplitAfterMaturity.selector);
+        vm.prank(alice);
+        series.split{value: 1 ether}(alice);
+
+        assertEq(pToken.balanceOf(alice), 1 ether, "alice P after maturity");
+        assertEq(nToken.balanceOf(alice), 1 ether, "alice N after maturity");
+    }
+
+    function testSplitRejectedAfterSettlement() public {
+        oracle.setResolvedValue(address(series), 2000e18);
+        vm.warp(maturity);
+        series.settle();
+
+        vm.expectRevert(OptionSeries.SplitAfterSettlement.selector);
         vm.prank(alice);
         series.split{value: 1 ether}(alice);
     }
