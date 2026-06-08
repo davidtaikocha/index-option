@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  font-family: 'Public Sans', sans-serif;
+  min-height: 100dvh;
+}
+
+.font-display {
+  font-family: 'Clash Grotesk', sans-serif;
+}
