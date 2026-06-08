@@ -13,8 +13,12 @@
   ];
 
   async function copy(addr: string) {
-    await navigator.clipboard.writeText(addr);
-    showToast('info', 'Address copied');
+    try {
+      await navigator.clipboard.writeText(addr);
+      showToast('info', 'Address copied');
+    } catch {
+      showToast('error', 'Copy failed');
+    }
   }
 </script>
 

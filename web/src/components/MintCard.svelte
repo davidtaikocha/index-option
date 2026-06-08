@@ -17,10 +17,16 @@
 
   async function refreshBalances() {
     if (!$activeSeries || !$account.address) return;
-    [pBalance, nBalance] = await Promise.all([
-      tokenBalance($activeSeries.pToken, $account.address),
-      tokenBalance($activeSeries.nToken, $account.address)
-    ]);
+    try {
+      [pBalance, nBalance] = await Promise.all([
+        tokenBalance($activeSeries.pToken, $account.address),
+        tokenBalance($activeSeries.nToken, $account.address)
+      ]);
+    } catch (e) {
+      pBalance = null;
+      nBalance = null;
+      showToast('error', (e as Error).message);
+    }
   }
 
   async function onLoad() {

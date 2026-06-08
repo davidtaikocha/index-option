@@ -14,7 +14,11 @@
   }
 
   async function onDisconnect() {
-    await disconnect(config);
+    try {
+      await disconnect(config);
+    } catch (e) {
+      showToast('error', (e as Error).message);
+    }
   }
 </script>
 
