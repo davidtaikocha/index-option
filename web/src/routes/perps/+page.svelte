@@ -1,17 +1,34 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { account } from '$lib/stores';
-  import { perpMarket, isPerpAdmin } from '$lib/perpStores';
-  import { readMarket, oracleAdmin } from '$lib/perp';
+  import { perpMarket, isPerpAdmin, myPositions } from '$lib/perpStores';
+  import { readMarket, oracleAdmin, openPositionIds, readPosition } from '$lib/perp';
+  import type { Address } from 'viem';
   import NetworkGuard from '$components/NetworkGuard.svelte';
   import MarketOverview from '$components/perp/MarketOverview.svelte';
   import OpenPositionCard from '$components/perp/OpenPositionCard.svelte';
+  import PositionCard from '$components/perp/PositionCard.svelte';
 
   let timer: ReturnType<typeof setInterval> | undefined;
+
+  async function refreshPositions() {
+    if (!$account.address) {
+      myPositions.set([]);
+      return;
+    }
+    try {
+      const ids = await openPositionIds($account.address as Address);
+      const loaded = await Promise.all(ids.map((id) => readPosition(id)));
+      myPositions.set(loaded.filter((p): p is NonNullable<typeof p> => p !== null));
+    } catch {
+      // keep prior positions on transient failure
+    }
+  }
 
   async function refresh() {
     try {
       perpMarket.set(await readMarket());
+      await refreshPositions();
     } catch {
       // keep prior market on transient read failure
     }
@@ -32,6 +49,7 @@
   }
 
   $: if ($account.address !== undefined) refreshAdmin();
+  $: if ($account.address !== undefined) refreshPositions();
 
   onMount(() => {
     refresh();
@@ -60,5 +78,10 @@
     <div class="reveal" style="animation-delay: 200ms">
       <OpenPositionCard market={$perpMarket} onDone={refresh} />
     </div>
+    {#each $myPositions as position (position.id)}
+      <div class="reveal">
+        <PositionCard {position} market={$perpMarket} onDone={refresh} />
+      </div>
+    {/each}
   </div>
 </main>
