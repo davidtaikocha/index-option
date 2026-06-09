@@ -289,9 +289,17 @@ contract IndexPerp is Initializable, OwnableUpgradeable, UUPSUpgradeable, Reentr
             grossToRecipient = margin - vd; // == uint256(settle)
             if (recipient != address(this)) _sendEth(recipient, grossToRecipient);
         } else {
+            // Trader profit owed by the vault. Pay what the vault holds and cover any
+            // remainder from the insurance fund (mirroring the loss path) so a winning
+            // trader is never stranded by a temporarily under-funded vault. Any amount
+            // still uncovered surfaces as BadDebt inside the insurance fund, never silently.
             uint256 owed = uint256(-vaultDelta);
-            vault.payProfit(address(this), owed);
-            grossToRecipient = margin + owed;
+            uint256 vaultBal = vault.totalAssets();
+            uint256 fromVault = owed > vaultBal ? vaultBal : owed;
+            if (fromVault > 0) vault.payProfit(address(this), fromVault);
+            uint256 covered;
+            if (owed > fromVault) covered = insurance.coverShortfall(address(this), owed - fromVault);
+            grossToRecipient = margin + fromVault + covered;
             if (recipient != address(this)) _sendEth(recipient, grossToRecipient);
         }
     }
