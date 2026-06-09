@@ -156,6 +156,92 @@ contract IndexPerp is Initializable, OwnableUpgradeable, UUPSUpgradeable, Reentr
     }
 
     // ----------------------------------------------------------------- //
+    // Close / margin
+    // ----------------------------------------------------------------- //
+
+    function close(uint256 id, uint256 limitLevel) external nonReentrant returns (int256 pnl) {
+        Position memory pos = positions[id];
+        if (pos.owner == address(0)) revert PositionClosed();
+        if (pos.owner != msg.sender) revert NotOwner();
+        _poke();
+        uint256 level = basket.currentLevel();
+        if (pos.isLong ? level < limitLevel : level > limitLevel) revert SlippageExceeded();
+
+        (int256 pnl_, uint256 borrowOwed, int256 fundOwed, uint256 notional) = _settleMath(pos, level);
+        pnl = pnl_;
+        uint256 closeFee = (((pos.units * level) / ONE) * closeFeeBps) / BPS;
+
+        int256 settle =
+            int256(pos.marginEth) + pnl - int256(borrowOwed) - fundOwed - int256(closeFee);
+        int256 vaultDelta = -pnl + int256(borrowOwed) + fundOwed + int256(closeFee);
+
+        if (pos.isLong) longOI -= notional;
+        else shortOI -= notional;
+        vault.release(notional);
+        delete positions[id];
+
+        uint256 payout = _disburseTo(pos.owner, pos.marginEth, settle, vaultDelta);
+        emit Closed(id, pnl, payout);
+    }
+
+    function addMargin(uint256 id) external payable nonReentrant {
+        Position storage pos = positions[id];
+        if (pos.owner == address(0)) revert PositionClosed();
+        if (pos.owner != msg.sender) revert NotOwner();
+        if (msg.value == 0) revert ZeroMargin();
+        pos.marginEth += msg.value;
+        emit MarginAdded(id, msg.value);
+    }
+
+    // ----------------------------------------------------------------- //
+    // Settlement math + disbursement
+    // ----------------------------------------------------------------- //
+
+    function _settleMath(Position memory pos, uint256 level)
+        internal
+        view
+        returns (int256 pnl, uint256 borrowOwed, int256 fundOwed, uint256 notional)
+    {
+        notional = (pos.units * pos.entryLevel) / ONE;
+        uint256 markValue = (pos.units * level) / ONE;
+        pnl = pos.isLong ? int256(markValue) - int256(notional) : int256(notional) - int256(markValue);
+        borrowOwed = (notional * (borrowCum - pos.entryBorrowCum)) / ONE;
+        int256 fundDiff = fundingCum - pos.entryFundingCum;
+        int256 raw = (int256(notional) * fundDiff) / int256(ONE);
+        fundOwed = pos.isLong ? raw : -raw;
+    }
+
+    /// @dev Routes ETH for a closing position. `recipient == address(this)` keeps the
+    ///      trader payout inside the perp (used by liquidation to skim a penalty).
+    ///      Returns the gross ETH owed to the trader before any penalty.
+    function _disburseTo(address recipient, uint256 margin, int256 settle, int256 vaultDelta)
+        internal
+        returns (uint256 grossToRecipient)
+    {
+        if (settle < 0) {
+            if (margin > 0) vault.takeLoss{value: margin}();
+            insurance.coverShortfall(address(vault), uint256(-settle));
+            return 0;
+        }
+        if (vaultDelta >= 0) {
+            uint256 vd = uint256(vaultDelta);
+            if (vd > 0) vault.takeLoss{value: vd}();
+            grossToRecipient = margin - vd; // == uint256(settle)
+            if (recipient != address(this)) _sendEth(recipient, grossToRecipient);
+        } else {
+            uint256 owed = uint256(-vaultDelta);
+            vault.payProfit(address(this), owed);
+            grossToRecipient = margin + owed;
+            if (recipient != address(this)) _sendEth(recipient, grossToRecipient);
+        }
+    }
+
+    function notionalOf(uint256 id) external view returns (uint256) {
+        Position storage pos = positions[id];
+        return (pos.units * pos.entryLevel) / ONE;
+    }
+
+    // ----------------------------------------------------------------- //
     // Params / upgrade
     // ----------------------------------------------------------------- //
 
