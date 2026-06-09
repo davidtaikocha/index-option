@@ -10,6 +10,7 @@
   import PositionCard from '$components/perp/PositionCard.svelte';
   import LpVaultCard from '$components/perp/LpVaultCard.svelte';
   import LiquidationsCard from '$components/perp/LiquidationsCard.svelte';
+  import PushPriceCard from '$components/perp/PushPriceCard.svelte';
 
   let timer: ReturnType<typeof setInterval> | undefined;
 
@@ -87,5 +88,8 @@
     {/each}
     <div class="reveal"><LpVaultCard market={$perpMarket} onDone={refresh} /></div>
     <div class="reveal"><LiquidationsCard market={$perpMarket} onDone={refresh} /></div>
+    {#if $isPerpAdmin}
+      <div class="reveal"><PushPriceCard market={$perpMarket} onDone={refresh} /></div>
+    {/if}
   </div>
 </main>
