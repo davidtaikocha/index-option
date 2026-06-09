@@ -16,6 +16,7 @@
     <div class="flex items-center gap-2">
       <nav class="hidden gap-1 sm:flex">
         <a href="/" class="btn-soft px-3 py-1.5 text-xs {path === '/' ? '!border-pink-400 !text-grey-10' : ''}">Options</a>
+        <a href="/secondary" class="btn-soft px-3 py-1.5 text-xs {path.startsWith('/secondary') ? '!border-pink-400 !text-grey-10' : ''}">Secondary</a>
         <a href="/perps" class="btn-soft px-3 py-1.5 text-xs {path.startsWith('/perps') ? '!border-pink-400 !text-grey-10' : ''}">Perps</a>
       </nav>
       <ConnectButton />
