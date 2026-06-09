@@ -1,6 +1,5 @@
 <script lang="ts">
   import { activeSeries } from '$lib/stores';
-  import ConnectButton from '$components/ConnectButton.svelte';
   import NetworkGuard from '$components/NetworkGuard.svelte';
   import SeriesSummary from '$components/SeriesSummary.svelte';
   import CreateSeriesCard from '$components/CreateSeriesCard.svelte';
@@ -10,20 +9,6 @@
 </script>
 
 <div class="min-h-dvh">
-  <header
-    class="sticky top-0 z-30 border-b border-grey-800/60 bg-grey-900/10 backdrop-blur-md">
-    <div class="mx-auto flex max-w-2xl items-center justify-between px-4 py-4 lg:px-6 lg:py-5">
-      <a href="/" class="flex items-center gap-3">
-        <img src="/taiko-favicon.svg" alt="" class="h-8 w-8" />
-        <span class="flex flex-col leading-tight">
-          <span class="display text-lg text-grey-10">Index Options</span>
-          <span class="text-[11px] uppercase tracking-[0.18em] text-grey-300">P / N primary market</span>
-        </span>
-      </a>
-      <ConnectButton />
-    </div>
-  </header>
-
   <main class="mx-auto w-full max-w-[480px] px-4 pb-20 pt-10 lg:pt-14">
     <section class="reveal mb-9 text-center" style="animation-delay: 40ms">
       <p class="mb-3 text-[11px] uppercase tracking-[0.22em] text-pink-200">Taiko Hoodi · testnet</p>

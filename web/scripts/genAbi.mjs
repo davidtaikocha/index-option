@@ -13,7 +13,12 @@ const targets = [
   ['OptionSeries.sol/OptionSeries.json', 'optionSeries', false],
   ['ClaimToken.sol/ClaimToken.json', 'claimToken', false],
   ['OptionPool.sol/OptionPool.json', 'optionPool', false],
-  ['OptionPoolFactory.sol/OptionPoolFactory.json', 'optionPoolFactory', false]
+  ['OptionPoolFactory.sol/OptionPoolFactory.json', 'optionPoolFactory', false],
+  ['IndexPerp.sol/IndexPerp.json', 'indexPerp', false],
+  ['PerpVault.sol/PerpVault.json', 'perpVault', false],
+  ['IndexBasket.sol/IndexBasket.json', 'indexBasket', false],
+  ['PushOracle.sol/PushOracle.json', 'pushOracle', false],
+  ['InsuranceFund.sol/InsuranceFund.json', 'insuranceFund', false]
 ];
 
 for (const [path, name, withBytecode] of targets) {

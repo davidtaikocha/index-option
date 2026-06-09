@@ -4,6 +4,7 @@
   import { config } from '$lib/wagmi';
   import { account } from '$lib/stores';
   import Toast from '$components/Toast.svelte';
+  import Header from '$components/Header.svelte';
   import '../app.css';
 
   function sync(a: GetAccountReturnType) {
@@ -32,5 +33,6 @@
   });
 </script>
 
+<Header />
 <slot />
 <Toast />
