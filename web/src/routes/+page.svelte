@@ -5,7 +5,6 @@
   import CreateSeriesCard from '$components/CreateSeriesCard.svelte';
   import MintCard from '$components/MintCard.svelte';
   import CombineCard from '$components/CombineCard.svelte';
-  import PoolPanel from '$components/PoolPanel.svelte';
 </script>
 
 <div class="min-h-dvh">
@@ -42,8 +41,10 @@
         <CombineCard />
       </div>
 
-      <div class="reveal" style="animation-delay: 320ms">
-        <PoolPanel />
+      <div class="reveal text-center" style="animation-delay: 320ms">
+        <a href="/secondary" class="text-sm text-pink-200 transition-colors hover:text-pink-100">
+          Trade P / N on the Secondary market →
+        </a>
       </div>
     </div>
 
