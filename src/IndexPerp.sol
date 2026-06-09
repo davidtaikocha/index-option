@@ -1,0 +1,204 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {FundingMath} from "./FundingMath.sol";
+import {IndexBasket} from "./IndexBasket.sol";
+import {PerpVault} from "./PerpVault.sol";
+import {InsuranceFund} from "./InsuranceFund.sol";
+
+/// @title IndexPerp
+/// @notice ETH-margined perpetual on an option-basket index, oracle-execution,
+///         pooled LP vault counterparty. Fills at IndexBasket.currentLevel().
+contract IndexPerp is Initializable, OwnableUpgradeable, UUPSUpgradeable, ReentrancyGuard {
+    uint256 public constant ONE = 1e18;
+    uint256 public constant BPS = 10_000;
+    uint256 public constant MAX_LEVERAGE_CEILING = 100e18;
+    uint256 public constant MAX_FEE_BPS = 100; // 1%
+    uint256 public constant MAX_MM_BPS = 5_000; // 50%
+    uint256 public constant MAX_LIQ_PENALTY_BPS = 2_000; // 20%
+    uint256 public constant MAX_BORROW_BASE = 1e15; // per-second, 1e18-scaled
+    uint256 public constant MAX_FUND_K = 1e15;
+
+    IndexBasket public basket;
+    PerpVault public vault;
+    InsuranceFund public insurance;
+
+    uint256 public borrowCum; // monotonic
+    int256 public fundingCum;
+    uint64 public lastPoke;
+    uint256 public longOI;
+    uint256 public shortOI;
+
+    uint256 public maxLeverage;
+    uint256 public openFeeBps;
+    uint256 public closeFeeBps;
+    uint256 public borrowBase;
+    uint256 public fundK;
+    uint256 public mmBps;
+    uint256 public liqPenaltyBps;
+
+    struct Position {
+        address owner;
+        bool isLong;
+        uint256 units;
+        uint256 entryLevel;
+        uint256 marginEth;
+        uint256 entryBorrowCum;
+        int256 entryFundingCum;
+        uint64 openedAt;
+    }
+
+    mapping(uint256 id => Position) public positions;
+    uint256 public nextId;
+
+    struct InitParams {
+        address owner;
+        address basket;
+        address vault;
+        address insurance;
+        uint256 maxLeverage;
+        uint256 openFeeBps;
+        uint256 closeFeeBps;
+        uint256 borrowBase;
+        uint256 fundK;
+        uint256 mmBps;
+        uint256 liqPenaltyBps;
+    }
+
+    error ZeroMargin();
+    error LeverageTooHigh();
+    error SlippageExceeded();
+    error NotOwner();
+    error PositionClosed();
+    error NotLiquidatable();
+    error ParamOutOfBounds();
+    error EthTransferFailed();
+
+    event Opened(uint256 indexed id, address indexed owner, bool isLong, uint256 units, uint256 entryLevel, uint256 marginEth);
+    event Closed(uint256 indexed id, int256 pnl, uint256 payout);
+    event MarginAdded(uint256 indexed id, uint256 amount);
+    event Liquidated(uint256 indexed id, address indexed keeper, uint256 penalty);
+    event Poked(uint256 borrowCum, int256 fundingCum);
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
+    receive() external payable {} // accepts vault.payProfit(address(this)) during liquidation
+
+    function initialize(InitParams calldata p) external initializer {
+        __Ownable_init(p.owner);
+        basket = IndexBasket(p.basket);
+        vault = PerpVault(payable(p.vault));
+        insurance = InsuranceFund(payable(p.insurance));
+        _setParams(p.maxLeverage, p.openFeeBps, p.closeFeeBps, p.borrowBase, p.fundK, p.mmBps, p.liqPenaltyBps);
+        lastPoke = uint64(block.timestamp);
+        nextId = 1;
+    }
+
+    // ----------------------------------------------------------------- //
+    // Accrual
+    // ----------------------------------------------------------------- //
+
+    function _poke() internal {
+        uint256 dt = block.timestamp - lastPoke;
+        if (dt == 0) return;
+        borrowCum += FundingMath.borrowDelta(borrowBase, vault.reserved(), vault.totalAssets(), dt);
+        fundingCum += FundingMath.fundingDelta(fundK, longOI, shortOI, dt);
+        lastPoke = uint64(block.timestamp);
+        emit Poked(borrowCum, fundingCum);
+    }
+
+    // ----------------------------------------------------------------- //
+    // Open
+    // ----------------------------------------------------------------- //
+
+    function open(bool isLong, uint256 leverage, uint256 limitLevel)
+        external
+        payable
+        nonReentrant
+        returns (uint256 id)
+    {
+        if (msg.value == 0) revert ZeroMargin();
+        if (leverage == 0 || leverage > maxLeverage) revert LeverageTooHigh();
+        _poke();
+        uint256 level = basket.currentLevel();
+        if (isLong ? level > limitLevel : level < limitLevel) revert SlippageExceeded();
+
+        uint256 notional = (leverage * msg.value) / ONE;
+        uint256 units = (leverage * msg.value) / level;
+        uint256 openFee = (notional * openFeeBps) / BPS;
+        uint256 margin = msg.value - openFee;
+
+        if (openFee > 0) vault.takeLoss{value: openFee}();
+        vault.reserve(notional);
+
+        if (isLong) longOI += notional;
+        else shortOI += notional;
+
+        id = nextId++;
+        positions[id] = Position({
+            owner: msg.sender,
+            isLong: isLong,
+            units: units,
+            entryLevel: level,
+            marginEth: margin,
+            entryBorrowCum: borrowCum,
+            entryFundingCum: fundingCum,
+            openedAt: uint64(block.timestamp)
+        });
+        emit Opened(id, msg.sender, isLong, units, level, margin);
+    }
+
+    // ----------------------------------------------------------------- //
+    // Params / upgrade
+    // ----------------------------------------------------------------- //
+
+    function setParams(
+        uint256 maxLeverage_,
+        uint256 openFeeBps_,
+        uint256 closeFeeBps_,
+        uint256 borrowBase_,
+        uint256 fundK_,
+        uint256 mmBps_,
+        uint256 liqPenaltyBps_
+    ) external onlyOwner {
+        _setParams(maxLeverage_, openFeeBps_, closeFeeBps_, borrowBase_, fundK_, mmBps_, liqPenaltyBps_);
+    }
+
+    function _setParams(
+        uint256 maxLeverage_,
+        uint256 openFeeBps_,
+        uint256 closeFeeBps_,
+        uint256 borrowBase_,
+        uint256 fundK_,
+        uint256 mmBps_,
+        uint256 liqPenaltyBps_
+    ) internal {
+        if (maxLeverage_ == 0 || maxLeverage_ > MAX_LEVERAGE_CEILING) revert ParamOutOfBounds();
+        if (openFeeBps_ > MAX_FEE_BPS || closeFeeBps_ > MAX_FEE_BPS) revert ParamOutOfBounds();
+        if (borrowBase_ > MAX_BORROW_BASE || fundK_ > MAX_FUND_K) revert ParamOutOfBounds();
+        if (mmBps_ == 0 || mmBps_ > MAX_MM_BPS) revert ParamOutOfBounds();
+        if (liqPenaltyBps_ > MAX_LIQ_PENALTY_BPS) revert ParamOutOfBounds();
+        maxLeverage = maxLeverage_;
+        openFeeBps = openFeeBps_;
+        closeFeeBps = closeFeeBps_;
+        borrowBase = borrowBase_;
+        fundK = fundK_;
+        mmBps = mmBps_;
+        liqPenaltyBps = liqPenaltyBps_;
+    }
+
+    function _sendEth(address to, uint256 amount) internal {
+        if (amount == 0) return;
+        (bool ok,) = to.call{value: amount}("");
+        if (!ok) revert EthTransferFailed();
+    }
+
+    function _authorizeUpgrade(address) internal override onlyOwner {}
+}
