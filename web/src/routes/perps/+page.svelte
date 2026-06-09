@@ -5,6 +5,7 @@
   import { readMarket, oracleAdmin } from '$lib/perp';
   import NetworkGuard from '$components/NetworkGuard.svelte';
   import MarketOverview from '$components/perp/MarketOverview.svelte';
+  import OpenPositionCard from '$components/perp/OpenPositionCard.svelte';
 
   let timer: ReturnType<typeof setInterval> | undefined;
 
@@ -55,6 +56,9 @@
   <div class="space-y-5">
     <div class="reveal" style="animation-delay: 120ms">
       <MarketOverview market={$perpMarket} onRefresh={refresh} />
+    </div>
+    <div class="reveal" style="animation-delay: 200ms">
+      <OpenPositionCard market={$perpMarket} onDone={refresh} />
     </div>
   </div>
 </main>
