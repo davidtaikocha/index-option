@@ -81,7 +81,7 @@
     </div>
 
     {#if !$activeSeries}
-      <p class="mb-4 text-sm text-grey-300">Create a series above, or load one by address to trade its P / N pair.</p>
+      <p class="mb-4 text-sm text-grey-300">Create a series on the Options page, or load one by address to trade its P / N pair.</p>
       <div class="flex gap-2">
         <input
           class="input-box min-w-0 flex-1 px-3.5 py-2.5 font-mono text-sm"
