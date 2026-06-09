@@ -8,6 +8,7 @@
   import MarketOverview from '$components/perp/MarketOverview.svelte';
   import OpenPositionCard from '$components/perp/OpenPositionCard.svelte';
   import PositionCard from '$components/perp/PositionCard.svelte';
+  import LpVaultCard from '$components/perp/LpVaultCard.svelte';
 
   let timer: ReturnType<typeof setInterval> | undefined;
 
@@ -83,5 +84,6 @@
         <PositionCard {position} market={$perpMarket} onDone={refresh} />
       </div>
     {/each}
+    <div class="reveal"><LpVaultCard market={$perpMarket} onDone={refresh} /></div>
   </div>
 </main>
