@@ -51,8 +51,10 @@
     }
   }
 
-  $: if ($account.address !== undefined) refreshAdmin();
-  $: if ($account.address !== undefined) refreshPositions();
+  // Re-run on any account change, including disconnect — both helpers clear their
+  // state when there's no address, so positions/admin don't linger after disconnect.
+  $: $account.address, refreshAdmin();
+  $: $account.address, refreshPositions();
 
   onMount(() => {
     refresh();
