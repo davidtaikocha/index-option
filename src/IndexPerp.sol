@@ -193,6 +193,66 @@ contract IndexPerp is Initializable, OwnableUpgradeable, UUPSUpgradeable, Reentr
         emit MarginAdded(id, msg.value);
     }
 
+    /// @notice Current equity and notional of a position at `level`.
+    /// @dev View — does not call `_poke()`, so accumulators are as of the last poke;
+    ///      returned equity slightly overstates true equity (borrow/funding underestimated).
+    function equityOf(uint256 id, uint256 level) public view returns (int256 equity, uint256 notional) {
+        Position memory pos = positions[id];
+        (int256 pnl, uint256 borrowOwed, int256 fundOwed, uint256 n) = _settleMath(pos, level);
+        notional = n;
+        equity = int256(pos.marginEth) + pnl - int256(borrowOwed) - fundOwed;
+    }
+
+    function liquidate(uint256 id) external nonReentrant returns (uint256 charged) {
+        Position memory pos = positions[id];
+        if (pos.owner == address(0)) revert PositionClosed();
+        _poke();
+        uint256 level = basket.currentLevel();
+
+        uint256 notional;
+        int256 settle;
+        int256 vaultDelta;
+        // Scoped to drop the settlement locals before the payout section (keeps the
+        // function within the EVM stack limit under default codegen — no via-IR needed).
+        {
+            (int256 pnl, uint256 borrowOwed, int256 fundOwed, uint256 n) = _settleMath(pos, level);
+            int256 equity = int256(pos.marginEth) + pnl - int256(borrowOwed) - fundOwed;
+            if (equity >= int256((n * mmBps) / BPS)) revert NotLiquidatable();
+            notional = n;
+            settle = equity; // no close fee on liquidation; penalty taken instead
+            vaultDelta = -pnl + int256(borrowOwed) + fundOwed;
+        }
+
+        if (pos.isLong) longOI -= notional;
+        else shortOI -= notional;
+        vault.release(notional);
+        delete positions[id];
+
+        charged = _settleLiquidationPayout(pos.owner, pos.marginEth, settle, vaultDelta, (notional * liqPenaltyBps) / BPS);
+
+        emit Liquidated(id, msg.sender, charged);
+    }
+
+    /// @dev Pulls the trader's gross equity into this contract, skims the penalty
+    ///      (capped at the available gross), splits it keeper/insurance, and returns
+    ///      any remainder to the trader. Returns the penalty actually charged.
+    function _settleLiquidationPayout(
+        address posOwner,
+        uint256 margin,
+        int256 settle,
+        int256 vaultDelta,
+        uint256 penalty
+    ) internal returns (uint256 charged) {
+        uint256 gross = _disburseTo(address(this), margin, settle, vaultDelta);
+        charged = penalty > gross ? gross : penalty;
+        uint256 keeperReward = charged / 2;
+        uint256 insCut = charged - keeperReward;
+        if (keeperReward > 0) _sendEth(msg.sender, keeperReward);
+        if (insCut > 0) _sendEth(address(insurance), insCut);
+        uint256 traderGets = gross - charged;
+        if (traderGets > 0) _sendEth(posOwner, traderGets);
+    }
+
     // ----------------------------------------------------------------- //
     // Settlement math + disbursement
     // ----------------------------------------------------------------- //
